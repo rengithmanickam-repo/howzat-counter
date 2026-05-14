@@ -3,59 +3,20 @@ import { CommonModule } from '@angular/common';
 import {
   IonContent,
   IonButton,
-  IonIcon,
   IonNote,
-  IonModal,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
-  IonItem,
-  IonToggle,
-  IonList,
-  IonInput,
-  AlertController,
-  ActionSheetController,
   ToastController
 } from '@ionic/angular/standalone';
-import { addIcons } from 'ionicons';
-import {
-  chevronForwardOutline,
-  ellipsisHorizontalOutline,
-  refreshOutline,
-  settingsOutline
-} from 'ionicons/icons';
-import {
-  UMPIRE_STORAGE_V1,
-  UMPIRE_STORAGE_V2,
-  type UmpireCarry,
-  type UmpireCounterV1Payload,
-  type UmpireCounterV2Payload,
-  type UmpireEvent,
-  type UmpireKeypad,
-  type KeypadPreset
-} from './umpire-counter.model';
 import {
   chipLabel as umpireFormatChip,
-  buildOverHistory,
-  defaultKeypadForPreset,
   deriveScoreTotals,
-  deriveState,
   formatOrdinalOver,
-  getRecentOverBarSlices,
   newEventId,
   type UmpireOverBallCell,
   type UmpireOverSlice,
   umpireOverSliceToBallCells
 } from './umpire-counter-logic';
-
-const LIMIT_DEFAULTS: { ballsPerOver: number; maxWickets: number; maxOvers: number } = {
-  ballsPerOver: 6,
-  maxWickets: 10,
-  maxOvers: 0
-};
-
-const OVERS_HARD_CAP = 999;
+import type { UmpireEvent } from './umpire-counter.model';
+import { UmpireStateService } from './umpire-state.service';
 
 @Component({
   selector: 'app-umpire-counter',
@@ -64,17 +25,7 @@ const OVERS_HARD_CAP = 999;
     CommonModule,
     IonContent,
     IonButton,
-    IonIcon,
-    IonNote,
-    IonModal,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonButtons,
-    IonItem,
-    IonToggle,
-    IonList,
-    IonInput
+    IonNote
   ],
   template: `
     <ion-content [fullscreen]="false" class="umpire-ion-content">
@@ -86,7 +37,7 @@ const OVERS_HARD_CAP = 999;
                 Imported match position from the old counter. No ball-by-ball history before this session. Runs and
                 extras below count only from balls you log from here.
               </ion-note>
-              <ion-button size="small" fill="clear" (click)="dismissMigrationBanner()">Dismiss</ion-button>
+              <ion-button size="small" fill="clear" (click)="state.dismissMigrationBanner()">Dismiss</ion-button>
             </div>
           }
 
@@ -98,14 +49,14 @@ const OVERS_HARD_CAP = 999;
           >
             <div class="summary-mega summary-mega--single">
               <span class="summary-mega-rw">
-                <span class="summary-mega-runs">{{ scoreTotals().battingRunsPlusExtras }}</span>
+                <span class="summary-mega-runs">{{ state.scoreTotals().battingRunsPlusExtras }}</span>
                 <span class="summary-mega-slash" aria-hidden="true">/</span>
-                <span class="summary-mega-wkts">{{ derived().wickets }}</span>
+                <span class="summary-mega-wkts">{{ state.derived().wickets }}</span>
               </span>
               <span class="summary-mega-parens">
-                (<span class="summary-mega-decimal">{{ derived().oversDecimal }}</span>
-                @if (maxOvers() > 0) {
-                  <span class="summary-mega-target">/{{ maxOvers() }} overs</span>
+                (<span class="summary-mega-decimal">{{ state.derived().oversDecimal }}</span>
+                @if (state.maxOvers() > 0) {
+                  <span class="summary-mega-target">/{{ state.maxOvers() }} overs</span>
                 }
                 <span class="summary-mega-paren-close">)</span>
               </span>
@@ -149,7 +100,7 @@ const OVERS_HARD_CAP = 999;
           }
         </div>
 
-        @if (events().length > 0) {
+        @if (state.events().length > 0) {
           <div class="recent-overs-grow">
             <div class="recent-overs-section">
               <div
@@ -158,7 +109,7 @@ const OVERS_HARD_CAP = 999;
                 role="region"
                 aria-label="Recent overs, scroll vertically when needed"
               >
-                @for (slice of recentOverBar(); track recentOverBarTrack(slice); let last = $last) {
+                @for (slice of state.recentOverBar(); track recentOverBarTrack(slice); let last = $last) {
                   <div class="over-item">
                     <div class="over-content">
                       <div class="over-number-col">
@@ -237,7 +188,7 @@ const OVERS_HARD_CAP = 999;
             </ion-button>
           </div>
           <div class="keypad-row keypad-row--extras">
-            @if (keypad().showWide) {
+            @if (state.keypad().showWide) {
               <ion-button
                 class="keypad-btn keypad-btn--warn"
                 expand="block"
@@ -248,7 +199,7 @@ const OVERS_HARD_CAP = 999;
                 Wd
               </ion-button>
             }
-            @if (keypad().showNoBall) {
+            @if (state.keypad().showNoBall) {
               <ion-button
                 class="keypad-btn keypad-btn--warn"
                 expand="block"
@@ -259,7 +210,7 @@ const OVERS_HARD_CAP = 999;
                 Nb
               </ion-button>
             }
-            @if (keypad().showLb) {
+            @if (state.keypad().showLb) {
               <ion-button
                 class="keypad-btn"
                 expand="block"
@@ -270,7 +221,7 @@ const OVERS_HARD_CAP = 999;
                 Lb
               </ion-button>
             }
-            @if (keypad().showBye) {
+            @if (state.keypad().showBye) {
               <ion-button
                 class="keypad-btn"
                 expand="block"
@@ -299,8 +250,8 @@ const OVERS_HARD_CAP = 999;
                 expand="block"
                 class="meta-btn"
                 aria-label="Redo last undone ball"
-                [disabled]="!canRedo()"
-                (click)="redo()"
+                [disabled]="!state.canRedo()"
+                (click)="state.redo(); queueScrollStrip()"
               >
                 Redo
               </ion-button>
@@ -326,134 +277,10 @@ const OVERS_HARD_CAP = 999;
                 {{ pendingDoneLabel() }}
               </ion-button>
             }
-            <div class="keypad-meta-icons">
-              <ion-button fill="clear" expand="block" class="meta-btn meta-btn--icon" aria-label="More options" (click)="openOverflowMenu()">
-                <ion-icon name="ellipsis-horizontal-outline" aria-hidden="true"></ion-icon>
-              </ion-button>
-              <ion-button fill="clear" expand="block" class="meta-btn meta-btn--icon" aria-label="Keypad and rules" (click)="openSettings()">
-                <ion-icon name="settings-outline" aria-hidden="true"></ion-icon>
-              </ion-button>
-            </div>
           </div>
         </div>
       </div>
     </ion-content>
-
-    <ion-modal [isOpen]="settingsOpen()" (didDismiss)="settingsOpen.set(false)">
-      <ng-template>
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Keypad &amp; rules</ion-title>
-            <ion-buttons slot="end">
-              <ion-button (click)="closeSettings()">Done</ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <p class="preset-label">Preset</p>
-          <div class="preset-row">
-            <ion-button
-              size="small"
-              [fill]="keypad().preset === 'leather' ? 'solid' : 'outline'"
-              (click)="applyPreset('leather')"
-            >
-              Leather
-            </ion-button>
-            <ion-button
-              size="small"
-              [fill]="keypad().preset === 'tennis' ? 'solid' : 'outline'"
-              (click)="applyPreset('tennis')"
-            >
-              Tennis / soft
-            </ion-button>
-            <ion-button
-              size="small"
-              [fill]="keypad().preset === 'custom' ? 'solid' : 'outline'"
-              (click)="applyPreset('custom')"
-            >
-              Custom
-            </ion-button>
-          </div>
-          <ion-list>
-            <ion-item>
-              <ion-toggle [checked]="keypad().showWide" (ionChange)="onToggleWide($event)">Show Wide (Wd)</ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-toggle [checked]="keypad().showNoBall" (ionChange)="onToggleNoBall($event)">Show No-ball (Nb)</ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-toggle [checked]="keypad().showLb" (ionChange)="onToggleLb($event)">Show Leg-bye (Lb)</ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-toggle [checked]="keypad().showBye" (ionChange)="onToggleBye($event)">Show Bye</ion-toggle>
-            </ion-item>
-          </ion-list>
-          <ion-note class="help-block">
-            After Wd/Nb, tap 0–6 for runs off that delivery, or Done (+0) for wide/no-ball only. Tap W for a wicket on
-            the same delivery (e.g. run out on a wide, with or without runs off bat); after a digit, choose W or No
-            wicket. Lb/Bye count as one legal delivery each (1 run).
-            <strong>Total score</strong> is batting (0–6 taps) plus extras (1 + extra for Wd/Nb; 1 each for Lb/Bye). Max
-            overs does not stop the keypad.
-          </ion-note>
-        </ion-content>
-      </ng-template>
-    </ion-modal>
-
-    <ion-modal [isOpen]="limitsModalOpen()" (didDismiss)="limitsModalOpen.set(false)">
-      <ng-template>
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Match limits</ion-title>
-            <ion-buttons slot="end">
-              <ion-button fill="clear" (click)="limitsModalOpen.set(false)">Cancel</ion-button>
-              <ion-button (click)="saveLimitsModal()">Save</ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding limits-modal-content">
-          <p class="limits-modal-sub">Rollover &amp; caps</p>
-          <ion-note class="limits-modal-hint">
-            Per-bowler limits are set in Match setup for full scoring. Max overs here is a reference only (logging is
-            never locked). Use 0 for no cap. When max overs is greater than 0, the score line shows (x.y/N overs).
-          </ion-note>
-          <ion-list class="limits-input-list" lines="full">
-            <ion-item>
-              <ion-input
-                label="Balls per over"
-                labelPlacement="stacked"
-                helperText="Legal deliveries in one over (1–12)"
-                type="number"
-                inputmode="numeric"
-                [value]="limitsDraftBpo()"
-                (ionInput)="onLimitsDraftBpo($event)"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-input
-                label="Max wickets"
-                labelPlacement="stacked"
-                helperText="Wicket cap for this counter (1–20)"
-                type="number"
-                inputmode="numeric"
-                [value]="limitsDraftMw()"
-                (ionInput)="onLimitsDraftMw($event)"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-input
-                label="Target overs (header)"
-                labelPlacement="stacked"
-                helperText="Shown as /N in the score line; use 0 to hide"
-                type="number"
-                inputmode="numeric"
-                [value]="limitsDraftMo()"
-                (ionInput)="onLimitsDraftMo($event)"
-              ></ion-input>
-            </ion-item>
-          </ion-list>
-        </ion-content>
-      </ng-template>
-    </ion-modal>
   `,
   styles: [
     `
@@ -470,7 +297,6 @@ const OVERS_HARD_CAP = 999;
       .umpire-ion-content {
         --background: var(--ion-background-color, #f4f5f8);
         --padding-top: 8px;
-        --padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
         height: 100%;
       }
 
@@ -680,7 +506,6 @@ const OVERS_HARD_CAP = 999;
         padding: 2px 0 6px;
       }
 
-      /* Visible scrollbar track on WebKit (iOS Safari / WKWebView) */
       .recent-overs-section .over-balls-container::-webkit-scrollbar {
         height: 4px;
       }
@@ -818,7 +643,7 @@ const OVERS_HARD_CAP = 999;
 
       .keypad-panel {
         flex-shrink: 0;
-        padding: 12px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        padding: 12px 12px 12px;
         margin-top: 0;
         background: linear-gradient(180deg, rgba(244, 245, 248, 0) 0%, var(--ion-background-color, #f4f5f8) 14px);
         border-top: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.06));
@@ -841,6 +666,7 @@ const OVERS_HARD_CAP = 999;
         flex-wrap: nowrap;
         align-items: stretch;
         gap: 8px;
+        margin-bottom: 0;
       }
 
       .keypad-meta-primary {
@@ -858,13 +684,6 @@ const OVERS_HARD_CAP = 999;
       .keypad-row--meta .meta-btn--done {
         flex: 0 1 7.5rem;
         min-width: 0;
-      }
-
-      .keypad-meta-icons {
-        display: flex;
-        flex: 0 0 auto;
-        gap: 4px;
-        align-items: stretch;
       }
 
       .keypad-btn {
@@ -887,125 +706,38 @@ const OVERS_HARD_CAP = 999;
         margin: 0;
         min-height: clamp(46px, 9dvh, 64px);
       }
-
-      .meta-btn--icon {
-        min-width: 48px;
-      }
-
-      .preset-label {
-        font-size: 0.85rem;
-        font-weight: 600;
-        margin: 0 0 8px;
-      }
-
-      .preset-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 16px;
-      }
-
-      .help-block {
-        display: block;
-        margin-top: 16px;
-        font-size: 0.8rem;
-        line-height: 1.45;
-      }
-
-      .limits-modal-content .limits-modal-sub {
-        margin: 0 0 8px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        color: var(--ion-color-medium-shade, #5f6368);
-      }
-
-      .limits-modal-content .limits-modal-hint {
-        display: block;
-        margin: 0 0 16px;
-        font-size: 0.85rem;
-        line-height: 1.45;
-        color: var(--ion-color-medium-shade, #5f6368);
-      }
-
-      .limits-input-list {
-        padding: 0;
-        background: transparent;
-      }
-
-      .limits-input-list ion-item {
-        --padding-start: 0;
-        --inner-padding-end: 0;
-        --background: transparent;
-      }
     `
   ]
 })
 export class UmpireCounterComponent implements OnInit {
   readonly formatUmpireChip = umpireFormatChip;
-
-  private readonly alertController = inject(AlertController);
-  private readonly actionSheetController = inject(ActionSheetController);
+  readonly state = inject(UmpireStateService);
   private readonly toastController = inject(ToastController);
 
   readonly runKeysRow1 = [0, 1, 2, 3] as const;
   readonly runKeysRow2 = [4, 5, 6] as const;
 
-  readonly ballsPerOver = signal(LIMIT_DEFAULTS.ballsPerOver);
-  readonly maxWickets = signal(LIMIT_DEFAULTS.maxWickets);
-  readonly maxOvers = signal(LIMIT_DEFAULTS.maxOvers);
-
-  readonly events = signal<UmpireEvent[]>([]);
-  /** In-memory only: last undone events (oldest first), restored by Redo. Cleared on new ball or reset/load. */
-  private readonly redoStack = signal<UmpireEvent[]>([]);
-  readonly carry = signal<UmpireCarry | null>(null);
-  readonly keypad = signal<UmpireKeypad>(defaultKeypadForPreset('leather'));
   readonly pendingWideNb = signal<'wd' | 'nb' | 'lb' | 'bye' | null>(null);
-  /** After 0–6 chosen for wide/NB: wait for W vs Done (no wicket). */
   readonly pendingWideExtraRuns = signal<number | null>(null);
-  /** Wicket pending: user tapped W, now choosing 0–6 runs before dismissal. */
   readonly pendingWicket = signal(false);
-  readonly noHistoryBannerDismissed = signal(false);
-  readonly settingsOpen = signal(false);
-  readonly limitsModalOpen = signal(false);
-  readonly limitsDraftBpo = signal('');
-  readonly limitsDraftMw = signal('');
-  readonly limitsDraftMo = signal('');
 
   private readonly recentOversScroll = viewChild<ElementRef<HTMLElement>>('recentOversScroll');
 
-  readonly limitsSig = computed(() => ({
-    ballsPerOver: this.ballsPerOver(),
-    maxWickets: this.maxWickets(),
-    maxOvers: this.maxOvers()
-  }));
-
-  readonly derived = computed(() => deriveState(this.events(), this.limitsSig(), this.carry()));
-
-  readonly scoreTotals = computed(() => deriveScoreTotals(this.events()));
-
   readonly summaryAriaLabel = computed(() => {
-    const runs = this.scoreTotals().battingRunsPlusExtras;
-    const wkts = this.derived().wickets;
-    const overs = this.derived().oversDecimal;
-    const cap = this.maxOvers();
-    if (cap > 0) {
-      return `${runs} for ${wkts}, ${overs} of ${cap} overs`;
-    }
+    const runs = this.state.scoreTotals().battingRunsPlusExtras;
+    const wkts = this.state.derived().wickets;
+    const overs = this.state.derived().oversDecimal;
+    const cap = this.state.maxOvers();
+    if (cap > 0) return `${runs} for ${wkts}, ${overs} of ${cap} overs`;
     return `${runs} for ${wkts}, ${overs} overs`;
   });
 
-  readonly overHistory = computed(() =>
-    buildOverHistory(this.events(), this.limitsSig(), this.carry())
-  );
-
-  readonly recentOverBar = computed(() => getRecentOverBarSlices(this.overHistory(), OVERS_HARD_CAP));
-
   readonly showMigrationBanner = computed(
-    () => this.carry() !== null && !this.noHistoryBannerDismissed() && this.events().length === 0
+    () => this.state.carry() !== null && !this.state.noHistoryBannerDismissed() && this.state.events().length === 0
   );
 
   readonly liveAnnouncement = computed(() => {
-    const evs = this.events();
+    const evs = this.state.events();
     if (evs.length === 0) return '';
     return this.formatUmpireChip(evs[evs.length - 1]!);
   });
@@ -1015,7 +747,7 @@ export class UmpireCounterComponent implements OnInit {
   );
 
   readonly keyDisabledW = computed(
-    () => this.derived().wicketsCapped || this.pendingWicket()
+    () => this.state.derived().wicketsCapped || this.pendingWicket()
   );
 
   readonly keyDisabledExtrasStart = computed(
@@ -1054,28 +786,12 @@ export class UmpireCounterComponent implements OnInit {
   });
 
   readonly canUndo = computed(
-    () => this.pendingWideNb() !== null || this.pendingWicket() || this.events().length > 0
+    () => this.pendingWideNb() !== null || this.pendingWicket() || this.state.events().length > 0
   );
 
-  readonly canRedo = computed(() => this.redoStack().length > 0);
-
-  constructor() {
-    addIcons({
-      chevronForwardOutline,
-      ellipsisHorizontalOutline,
-      refreshOutline,
-      settingsOutline
-    });
-  }
-
   ngOnInit(): void {
-    this.load();
+    this.state.ensureLoaded();
     this.queueScrollStrip();
-  }
-
-  dismissMigrationBanner(): void {
-    this.noHistoryBannerDismissed.set(true);
-    this.persist();
   }
 
   ordinalOver(n: number): string {
@@ -1092,74 +808,6 @@ export class UmpireCounterComponent implements OnInit {
 
   recentOverBarTrack(slice: UmpireOverSlice): string {
     return `${slice.overNumber}-${slice.isComplete ? 'c' : 'o'}-${slice.events.map(e => e.id).join('.')}`;
-  }
-
-  openSettings(): void {
-    this.settingsOpen.set(true);
-  }
-
-  closeSettings(): void {
-    this.settingsOpen.set(false);
-    this.persist();
-  }
-
-  applyPreset(p: KeypadPreset): void {
-    if (p === 'custom') {
-      this.keypad.update(k => ({ ...k, preset: 'custom' }));
-    } else {
-      this.keypad.set(defaultKeypadForPreset(p));
-    }
-    this.persist();
-  }
-
-  onToggleWide(ev: Event): void {
-    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
-    this.keypad.update(k => ({ ...k, showWide: !!checked, preset: 'custom' }));
-    this.persist();
-  }
-
-  onToggleNoBall(ev: Event): void {
-    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
-    this.keypad.update(k => ({ ...k, showNoBall: !!checked, preset: 'custom' }));
-    this.persist();
-  }
-
-  onToggleLb(ev: Event): void {
-    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
-    this.keypad.update(k => ({ ...k, showLb: !!checked, preset: 'custom' }));
-    this.persist();
-  }
-
-  onToggleBye(ev: Event): void {
-    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
-    this.keypad.update(k => ({ ...k, showBye: !!checked, preset: 'custom' }));
-    this.persist();
-  }
-
-  async openOverflowMenu(): Promise<void> {
-    const sheet = await this.actionSheetController.create({
-      header: 'Umpire log',
-      buttons: [
-        {
-          text: 'Match limits',
-          icon: 'chevron-forward-outline',
-          handler: () => void this.openLimitsPrompt()
-        },
-        {
-          text: 'Keypad & rules',
-          icon: 'settings-outline',
-          handler: () => this.openSettings()
-        },
-        {
-          text: 'Reset log & counters',
-          role: 'destructive',
-          icon: 'refresh-outline',
-          handler: () => void this.confirmReset()
-        },
-        { text: 'Cancel', role: 'cancel' }
-      ]
-    });
-    await sheet.present();
   }
 
   logRuns(n: number): void {
@@ -1181,21 +829,17 @@ export class UmpireCounterComponent implements OnInit {
 
   logWicket(): void {
     if (this.pendingWideNb() !== null) {
-      if (this.derived().wicketsCapped) {
+      if (this.state.derived().wicketsCapped) {
         void this.toast('Max wickets reached.');
         return;
       }
       const p = this.pendingWideNb()!;
       const defaultRuns = (p === 'lb' || p === 'bye') ? 1 : 0;
       const ex = this.pendingWideExtraRuns();
-      if (ex !== null) {
-        this.completeExtra(ex, true);
-      } else {
-        this.completeExtra(defaultRuns, true);
-      }
+      this.completeExtra(ex !== null ? ex : defaultRuns, true);
       return;
     }
-    if (this.derived().wicketsCapped) {
+    if (this.state.derived().wicketsCapped) {
       void this.toast('Max wickets reached.');
       return;
     }
@@ -1205,35 +849,21 @@ export class UmpireCounterComponent implements OnInit {
   completeWicketPending(runs: number): void {
     const r = clampInt(runs, 0, 6);
     const ev: UmpireEvent = { id: newEventId(), t: Date.now(), kind: 'w' };
-    if (r > 0) {
-      ev.runs = r;
-    }
+    if (r > 0) ev.runs = r;
     this.pushEvent(ev);
     this.pendingWicket.set(false);
   }
 
   startWide(): void {
-    if (this.pendingWideNb() === 'nb') {
-      void this.toast('Finish the no-ball first.');
-      return;
-    }
-    if (this.pendingWideNb() === 'wd') {
-      void this.toast('Wide already in progress.');
-      return;
-    }
+    if (this.pendingWideNb() === 'nb') { void this.toast('Finish the no-ball first.'); return; }
+    if (this.pendingWideNb() === 'wd') { void this.toast('Wide already in progress.'); return; }
     this.pendingWideExtraRuns.set(null);
     this.pendingWideNb.set('wd');
   }
 
   startNoBall(): void {
-    if (this.pendingWideNb() === 'wd') {
-      void this.toast('Finish the wide first.');
-      return;
-    }
-    if (this.pendingWideNb() === 'nb') {
-      void this.toast('No-ball already in progress.');
-      return;
-    }
+    if (this.pendingWideNb() === 'wd') { void this.toast('Finish the wide first.'); return; }
+    if (this.pendingWideNb() === 'nb') { void this.toast('No-ball already in progress.'); return; }
     this.pendingWideExtraRuns.set(null);
     this.pendingWideNb.set('nb');
   }
@@ -1249,296 +879,57 @@ export class UmpireCounterComponent implements OnInit {
     }
   }
 
-  private completeExtra(extra: number, wicketOnDelivery: boolean): void {
-    const p = this.pendingWideNb();
-    if (!p) return;
-    const er = clampInt(extra, 0, 6);
-    const ev: UmpireEvent = {
-      id: newEventId(),
-      t: Date.now(),
-      kind: p,
-      extraRuns: er
-    };
-    if (wicketOnDelivery) {
-      ev.wicketOnDelivery = true;
-    }
-    this.pushEvent(ev);
-    this.pendingWideNb.set(null);
-    this.pendingWideExtraRuns.set(null);
-  }
-
   logLegBye(): void {
-    if (this.pendingWideNb() !== null) {
-      void this.toast('Finish the current extra first.');
-      return;
-    }
+    if (this.pendingWideNb() !== null) { void this.toast('Finish the current extra first.'); return; }
     this.pendingWideExtraRuns.set(null);
     this.pendingWideNb.set('lb');
   }
 
   logBye(): void {
-    if (this.pendingWideNb() !== null) {
-      void this.toast('Finish the current extra first.');
-      return;
-    }
+    if (this.pendingWideNb() !== null) { void this.toast('Finish the current extra first.'); return; }
     this.pendingWideExtraRuns.set(null);
     this.pendingWideNb.set('bye');
   }
 
   undo(): void {
-    if (this.pendingWicket()) {
-      this.pendingWicket.set(false);
-      return;
-    }
+    if (this.pendingWicket()) { this.pendingWicket.set(false); return; }
     if (this.pendingWideNb() !== null) {
-      if (this.pendingWideExtraRuns() !== null) {
-        this.pendingWideExtraRuns.set(null);
-        return;
-      }
+      if (this.pendingWideExtraRuns() !== null) { this.pendingWideExtraRuns.set(null); return; }
       this.pendingWideNb.set(null);
       this.pendingWideExtraRuns.set(null);
       return;
     }
-    const arr = this.events();
-    if (arr.length === 0) return;
-    const last = arr[arr.length - 1]!;
-    this.redoStack.update(s => [...s, last]);
-    this.events.update(a => a.slice(0, -1));
-    this.persist();
+    this.state.undoEvent();
     this.queueScrollStrip();
   }
 
-  redo(): void {
-    const stack = this.redoStack();
-    if (stack.length === 0) return;
-    const e = stack[stack.length - 1]!;
-    this.redoStack.set(stack.slice(0, -1));
-    this.events.update(a => [...a, e]);
-    this.persist();
-    this.queueScrollStrip();
-  }
-
-  private pushEvent(e: UmpireEvent): void {
-    this.redoStack.set([]);
-    this.events.update(arr => [...arr, e]);
-    this.persist();
-    this.queueScrollStrip();
-  }
-
-  private queueScrollStrip(): void {
+  queueScrollStrip(): void {
     requestAnimationFrame(() => this.scrollRecentOversBar());
   }
 
   private scrollRecentOversBar(): void {
     const el = this.recentOversScroll()?.nativeElement;
-    if (el) {
-      el.scrollTop = 0;
-    }
+    if (el) el.scrollTop = 0;
   }
 
-  async openLimitsPrompt(): Promise<void> {
-    this.limitsDraftBpo.set(String(this.ballsPerOver()));
-    this.limitsDraftMw.set(String(this.maxWickets()));
-    this.limitsDraftMo.set(String(this.maxOvers()));
-    this.limitsModalOpen.set(true);
-  }
-
-  saveLimitsModal(): void {
-    this.applyMatchLimitsFromAlert({
-      ballsPerOver: this.limitsDraftBpo(),
-      maxWickets: this.limitsDraftMw(),
-      maxOvers: this.limitsDraftMo()
-    });
-    this.limitsModalOpen.set(false);
-  }
-
-  onLimitsDraftBpo(ev: Event): void {
-    this.limitsDraftBpo.set(this.ionInputDetailValue(ev));
-  }
-
-  onLimitsDraftMw(ev: Event): void {
-    this.limitsDraftMw.set(this.ionInputDetailValue(ev));
-  }
-
-  onLimitsDraftMo(ev: Event): void {
-    this.limitsDraftMo.set(this.ionInputDetailValue(ev));
-  }
-
-  private ionInputDetailValue(ev: Event): string {
-    const ce = ev as CustomEvent<{ value?: string | number | null }>;
-    const v = ce.detail?.value;
-    if (v === null || v === undefined) return '';
-    return String(v);
-  }
-
-  private applyMatchLimitsFromAlert(data: Record<string, unknown>): boolean {
-    const bpoStr = String(data['ballsPerOver'] ?? '').trim();
-    const mwStr = String(data['maxWickets'] ?? '').trim();
-    const moStr = String(data['maxOvers'] ?? '').trim();
-
-    const bpoN = parseInt(bpoStr.replace(/\D/g, ''), 10);
-    const mwN = parseInt(mwStr.replace(/\D/g, ''), 10);
-    const moN = parseInt(moStr.replace(/\D/g, ''), 10);
-
-    const bpo = Number.isFinite(bpoN) ? clampInt(bpoN, 1, 12) : LIMIT_DEFAULTS.ballsPerOver;
-    const mw = Number.isFinite(mwN) ? clampInt(mwN, 1, 20) : LIMIT_DEFAULTS.maxWickets;
-    const mo =
-      moStr === '' || !Number.isFinite(moN) ? 0 : clampInt(moN, 0, OVERS_HARD_CAP);
-
-    this.ballsPerOver.set(bpo);
-    this.maxWickets.set(mw);
-    this.maxOvers.set(mo);
-    this.clampCarryToLimits();
-    this.persist();
-    return true;
-  }
-
-  private clampCarryToLimits(): void {
-    const c = this.carry();
-    if (!c) return;
-    const bpo = this.ballsPerOver();
-    const capB = Math.max(0, bpo - 1);
-    const capO = this.maxOvers() > 0 ? this.maxOvers() : OVERS_HARD_CAP;
-    this.carry.set({
-      fullOvers: clampInt(c.fullOvers, 0, capO),
-      legalBalls: clampInt(c.legalBalls, 0, capB),
-      wickets: clampInt(c.wickets, 0, this.maxWickets())
-    });
-  }
-
-  async confirmReset(): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Reset umpire log?',
-      message: 'Ball history, overs, wickets, runs/extras totals, and imported carry totals will be cleared.',
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Reset',
-          role: 'destructive',
-          handler: () => this.resetAll()
-        }
-      ]
-    });
-    await alert.present();
-  }
-
-  private resetAll(): void {
-    this.events.set([]);
-    this.redoStack.set([]);
-    this.carry.set(null);
+  private completeExtra(extra: number, wicketOnDelivery: boolean): void {
+    const p = this.pendingWideNb();
+    if (!p) return;
+    const er = clampInt(extra, 0, 6);
+    const ev: UmpireEvent = { id: newEventId(), t: Date.now(), kind: p, extraRuns: er };
+    if (wicketOnDelivery) ev.wicketOnDelivery = true;
+    this.pushEvent(ev);
     this.pendingWideNb.set(null);
     this.pendingWideExtraRuns.set(null);
-    this.pendingWicket.set(false);
-    this.noHistoryBannerDismissed.set(false);
-    this.persist();
   }
 
-  private persist(): void {
-    const payload: UmpireCounterV2Payload = {
-      schemaVersion: 2,
-      limits: this.limitsSig(),
-      keypad: this.keypad(),
-      events: this.events(),
-      carry: this.carry(),
-      noHistoryBannerDismissed: this.noHistoryBannerDismissed()
-    };
-    try {
-      localStorage.setItem(UMPIRE_STORAGE_V2, JSON.stringify(payload));
-    } catch {
-      /* ignore */
-    }
-  }
-
-  private load(): void {
-    try {
-      const rawV2 = localStorage.getItem(UMPIRE_STORAGE_V2);
-      if (rawV2) {
-        this.applyV2Payload(JSON.parse(rawV2) as UmpireCounterV2Payload);
-        return;
-      }
-      const rawV1 = localStorage.getItem(UMPIRE_STORAGE_V1);
-      if (rawV1) {
-        this.migrateFromV1(JSON.parse(rawV1) as UmpireCounterV1Payload);
-        this.persist();
-        return;
-      }
-    } catch {
-      /* ignore */
-    }
-  }
-
-  private applyV2Payload(p: UmpireCounterV2Payload): void {
-    if (p.schemaVersion !== 2) return;
-    const lim = p.limits ?? {};
-    this.ballsPerOver.set(clampInt(lim.ballsPerOver ?? LIMIT_DEFAULTS.ballsPerOver, 1, 12));
-    this.maxWickets.set(clampInt(lim.maxWickets ?? LIMIT_DEFAULTS.maxWickets, 1, 20));
-    this.maxOvers.set(clampInt(lim.maxOvers ?? LIMIT_DEFAULTS.maxOvers, 0, OVERS_HARD_CAP));
-
-    const kp = p.keypad;
-    if (kp && typeof kp === 'object') {
-      const preset: KeypadPreset =
-        kp.preset === 'tennis' || kp.preset === 'custom' || kp.preset === 'leather' ? kp.preset : 'leather';
-      this.keypad.set({
-        preset,
-        showLb: !!kp.showLb,
-        showBye: !!kp.showBye,
-        showWide: kp.showWide !== false,
-        showNoBall: kp.showNoBall !== false
-      });
-    } else {
-      this.keypad.set(defaultKeypadForPreset('leather'));
-    }
-
-    this.events.set(sanitizeEvents(p.events));
-    this.redoStack.set([]);
-    const c = p.carry;
-    if (c && typeof c === 'object') {
-      this.carry.set({
-        fullOvers: clampInt(c.fullOvers, 0, OVERS_HARD_CAP),
-        legalBalls: clampInt(c.legalBalls, 0, 11),
-        wickets: clampInt(c.wickets, 0, 30)
-      });
-      this.clampCarryToLimits();
-    } else {
-      this.carry.set(null);
-    }
-    this.noHistoryBannerDismissed.set(!!p.noHistoryBannerDismissed);
-    this.pendingWideNb.set(null);
-    this.pendingWideExtraRuns.set(null);
-    this.pendingWicket.set(false);
-  }
-
-  private migrateFromV1(v1: UmpireCounterV1Payload): void {
-    const bpo = clampInt(v1.ballsPerOver ?? LIMIT_DEFAULTS.ballsPerOver, 1, 12);
-    const mxw = clampInt(v1.maxWickets ?? LIMIT_DEFAULTS.maxWickets, 1, 20);
-    const mxo = clampInt(v1.maxOvers ?? LIMIT_DEFAULTS.maxOvers, 0, OVERS_HARD_CAP);
-    this.ballsPerOver.set(bpo);
-    this.maxWickets.set(mxw);
-    this.maxOvers.set(mxo);
-
-    const capB = Math.max(0, bpo - 1);
-    const capO = mxo > 0 ? mxo : OVERS_HARD_CAP;
-    this.carry.set({
-      fullOvers: clampInt(v1.overs ?? 0, 0, capO),
-      legalBalls: clampInt(v1.balls ?? 0, 0, capB),
-      wickets: clampInt(v1.wickets ?? 0, 0, mxw)
-    });
-    this.events.set([]);
-    this.redoStack.set([]);
-    this.keypad.set(defaultKeypadForPreset('leather'));
-    this.noHistoryBannerDismissed.set(false);
-    this.pendingWideNb.set(null);
-    this.pendingWideExtraRuns.set(null);
-    this.pendingWicket.set(false);
+  private pushEvent(e: UmpireEvent): void {
+    this.state.pushEvent(e);
+    this.queueScrollStrip();
   }
 
   private async toast(message: string): Promise<void> {
-    const t = await this.toastController.create({
-      message,
-      duration: 2000,
-      position: 'bottom',
-      cssClass: 'umpire-toast'
-    });
+    const t = await this.toastController.create({ message, duration: 2000, position: 'bottom', cssClass: 'umpire-toast' });
     await t.present();
   }
 }
@@ -1546,51 +937,4 @@ export class UmpireCounterComponent implements OnInit {
 function clampInt(n: unknown, min: number, max: number): number {
   const x = typeof n === 'number' && !Number.isNaN(n) ? Math.trunc(n) : min;
   return Math.min(max, Math.max(min, x));
-}
-
-function sanitizeEvents(raw: unknown): UmpireEvent[] {
-  if (!Array.isArray(raw)) return [];
-  const out: UmpireEvent[] = [];
-  for (const row of raw) {
-    if (!row || typeof row !== 'object') continue;
-    const r = row as Record<string, unknown>;
-    const kind = r['kind'];
-    if (
-      kind !== 'runs' &&
-      kind !== 'w' &&
-      kind !== 'wd' &&
-      kind !== 'nb' &&
-      kind !== 'lb' &&
-      kind !== 'bye'
-    ) {
-      continue;
-    }
-    const id = typeof r['id'] === 'string' ? r['id'] : newEventId();
-    const t = typeof r['t'] === 'number' ? r['t'] : Date.now();
-    if (kind === 'runs') {
-      out.push({ id, t, kind: 'runs', runs: clampInt(r['runs'] ?? 0, 0, 6) });
-    } else if (kind === 'wd' || kind === 'nb') {
-      const wk = Boolean(r['wicketOnDelivery']);
-      out.push({
-        id,
-        t,
-        kind,
-        extraRuns: clampInt(r['extraRuns'], 0, 6),
-        ...(wk ? { wicketOnDelivery: true as const } : {})
-      });
-    } else if (kind === 'lb' || kind === 'bye') {
-      out.push({
-        id,
-        t,
-        kind,
-        extraRuns: clampInt(r['extraRuns'] ?? 1, 0, 6)
-      });
-    } else if (kind === 'w') {
-      const runs = clampInt(r['runs'] ?? 0, 0, 6);
-      out.push({ id, t, kind, ...(runs > 0 ? { runs } : {}) });
-    } else {
-      out.push({ id, t, kind });
-    }
-  }
-  return out;
 }
