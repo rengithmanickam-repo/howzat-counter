@@ -1,6 +1,9 @@
 node_modules/
 dist/
-ios/
+ios/*
+!ios/App/
+ios/App/*
+!ios/App/ci_scripts/
 android/
 .angular/
 *.log
