@@ -13,7 +13,7 @@ npm ci
 echo ">>> Building Angular app"
 npm run build
 
-echo ">>> Syncing Capacitor iOS"
-npx cap sync ios
+echo ">>> Copying web assets to iOS"
+npx cap copy ios
 
 echo ">>> Build preparation complete"

@@ -1,11 +1,11 @@
 node_modules/
 dist/
-ios/*
-!ios/App/
-ios/App/*
-!ios/App/ci_scripts/
 android/
 .angular/
 *.log
 .DS_Store
 *.swp
+
+# iOS - track the native project, ignore generated content
+ios/App/App/public/
+ios/App/Pods/
