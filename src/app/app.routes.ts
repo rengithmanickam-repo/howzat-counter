@@ -7,7 +7,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'home',
-        loadComponent: () => import('./umpire-counter/umpire-counter.component').then(m => m.UmpireCounterComponent)
+        loadComponent: () => import('./home/home.component').then(m => m.HomeComponent)
       },
       {
         path: 'history',

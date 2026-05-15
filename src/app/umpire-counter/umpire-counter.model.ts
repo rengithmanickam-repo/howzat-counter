@@ -41,12 +41,23 @@ export interface UmpireCounterV2Payload {
   keypad: UmpireKeypad;
   events: UmpireEvent[];
   carry?: UmpireCarry | null;
-  /** After v1 migration; UI may show until dismissed */
   noHistoryBannerDismissed?: boolean;
+  sessionActive?: boolean;
+}
+
+export interface UmpireSetupConfig {
+  overs: number;
+  ballsPerOver: number;
+  wickets: number;
+  showWide: boolean;
+  showNoBall: boolean;
+  showLb: boolean;
+  showBye: boolean;
 }
 
 export const UMPIRE_STORAGE_V1 = 'umpireCounterV1';
 export const UMPIRE_STORAGE_V2 = 'umpireCounterV2';
+export const UMPIRE_SETUP_DEFAULTS = 'umpireSetupDefaults';
 
 export interface UmpireCounterV1Payload {
   balls: number;

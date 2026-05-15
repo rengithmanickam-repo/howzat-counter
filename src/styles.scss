@@ -15,39 +15,16 @@
 }
 
 html {
-  overflow-x: clip;
   height: 100%;
   touch-action: manipulation;
 }
 
 body {
+  margin: 0;
   height: 100%;
   font-family: var(--ion-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
   background: var(--ion-background-color, #ffffff);
   color: var(--ion-text-color, #000000);
-  overflow-x: clip;
-  max-width: 100%;
-}
-
-app-root {
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  min-height: 100dvh;
-  overflow-x: clip;
-  max-width: 100%;
-}
-
-app-root router-outlet {
-  display: contents;
-}
-
-app-root router-outlet > * {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 /* Ionic Theme Variables - Default Theme */
@@ -154,6 +131,10 @@ app-root router-outlet > * {
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Safe areas for notch / status bar and iOS home indicator (viewport-fit=cover) */
+  --app-safe-top: max(env(safe-area-inset-top, 0px), 12px);
+  --app-safe-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
 }
 
 /* Enhanced Typography */
@@ -223,4 +204,42 @@ ion-content {
   --padding-end: var(--spacing-md);
   --padding-top: var(--spacing-md);
   --padding-bottom: var(--spacing-md);
+}
+
+/*
+ * ion-router-outlet is position:absolute over the tab area. Invisible stacked
+ * pages (opacity:0) and the outlet itself can sit above the keypad and eat taps.
+ */
+ion-router-outlet {
+  pointer-events: none;
+}
+
+ion-router-outlet > .ion-page:not(.ion-page-hidden):not(.ion-page-invisible) {
+  pointer-events: auto;
+}
+
+.ion-page-invisible,
+.ion-page-hidden {
+  pointer-events: none !important;
+}
+
+/* Ionic pages default to space-between; keep tab content pinned from the top */
+.ion-page {
+  justify-content: flex-start !important;
+}
+
+/* Tab bar: keep icons above the home-indicator swipe zone */
+ion-tab-bar {
+  padding-bottom: var(--app-safe-bottom);
+}
+
+/* Screens with a toolbar header */
+ion-header ion-toolbar {
+  --padding-top: var(--app-safe-top);
+  --min-height: calc(56px + var(--app-safe-top));
+}
+
+/* Extra scroll padding above tab bar / home indicator */
+ion-content.app-safe-content {
+  --padding-bottom: var(--app-safe-bottom);
 }

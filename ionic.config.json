@@ -1,0 +1,8 @@
+{
+  "name": "Howzat - Counter",
+  "integrations": {},
+  "type": "angular",
+  "serve": {
+    "project": "howzat-counter"
+  }
+}

@@ -2,11 +2,13 @@ import { Injectable, computed, signal } from '@angular/core';
 import {
   UMPIRE_STORAGE_V1,
   UMPIRE_STORAGE_V2,
+  UMPIRE_SETUP_DEFAULTS,
   type UmpireCarry,
   type UmpireCounterV1Payload,
   type UmpireCounterV2Payload,
   type UmpireEvent,
   type UmpireKeypad,
+  type UmpireSetupConfig,
   type KeypadPreset
 } from './umpire-counter.model';
 import {
@@ -14,12 +16,21 @@ import {
   defaultKeypadForPreset,
   deriveScoreTotals,
   deriveState,
-  getRecentOverBarSlices,
   newEventId
 } from './umpire-counter-logic';
 
-const LIMIT_DEFAULTS = { ballsPerOver: 6, maxWickets: 10, maxOvers: 0 };
+const LIMIT_DEFAULTS = { ballsPerOver: 6, maxWickets: 11, maxOvers: 0 };
 const OVERS_HARD_CAP = 999;
+
+const SETUP_DEFAULTS: UmpireSetupConfig = {
+  overs: 20,
+  ballsPerOver: 6,
+  wickets: 11,
+  showWide: true,
+  showNoBall: true,
+  showLb: false,
+  showBye: false
+};
 
 function clampInt(n: unknown, min: number, max: number): number {
   const x = typeof n === 'number' && !Number.isNaN(n) ? Math.trunc(n) : min;
@@ -64,6 +75,7 @@ export class UmpireStateService {
   readonly carry = signal<UmpireCarry | null>(null);
   readonly keypad = signal<UmpireKeypad>(defaultKeypadForPreset('leather'));
   readonly noHistoryBannerDismissed = signal(false);
+  readonly sessionActive = signal(false);
 
   readonly limitsSig = computed(() => ({
     ballsPerOver: this.ballsPerOver(),
@@ -74,10 +86,38 @@ export class UmpireStateService {
   readonly derived = computed(() => deriveState(this.events(), this.limitsSig(), this.carry()));
   readonly scoreTotals = computed(() => deriveScoreTotals(this.events()));
   readonly overHistory = computed(() => buildOverHistory(this.events(), this.limitsSig(), this.carry()));
-  readonly recentOverBar = computed(() => getRecentOverBarSlices(this.overHistory(), OVERS_HARD_CAP));
-  readonly allOversBar = computed(() => getRecentOverBarSlices(this.overHistory(), OVERS_HARD_CAP));
+
+  /**
+   * Home tab over strip: in-progress over, or the just-finished over while the next
+   * over is still empty (until the scorer logs the first ball via the keypad).
+   */
+  readonly currentOverBarSlice = computed(() => {
+    const h = this.overHistory();
+    if (h.length === 0) return null;
+    const last = h[h.length - 1]!;
+    if (last.events.length > 0) return last;
+    if (h.length < 2) return null;
+    const prev = h[h.length - 2]!;
+    return prev.isComplete && prev.events.length > 0 ? prev : null;
+  });
+
+  /** History tab: every over that has at least one logged ball, oldest first. */
+  readonly historyOversChronological = computed(() =>
+    this.overHistory().filter(s => s.events.length > 0)
+  );
 
   readonly canRedo = computed(() => this.redoStack().length > 0);
+
+  readonly oversCapped = computed(() => {
+    const mo = this.maxOvers();
+    if (mo <= 0) return false;
+    const d = this.derived();
+    return d.completedFullOvers >= mo && d.legalBallsThisOver === 0;
+  });
+
+  readonly matchCapped = computed(() => {
+    return this.oversCapped() || this.derived().wicketsCapped;
+  });
 
   private loaded = false;
 
@@ -85,6 +125,51 @@ export class UmpireStateService {
     if (this.loaded) return;
     this.loaded = true;
     this.load();
+  }
+
+  startSession(config: UmpireSetupConfig): void {
+    this.ballsPerOver.set(clampInt(config.ballsPerOver, 1, 12));
+    this.maxWickets.set(clampInt(config.wickets, 1, 20));
+    this.maxOvers.set(clampInt(config.overs, 1, OVERS_HARD_CAP));
+    this.keypad.set({
+      preset: 'custom',
+      showWide: config.showWide,
+      showNoBall: config.showNoBall,
+      showLb: config.showLb,
+      showBye: config.showBye
+    });
+    this.events.set([]);
+    this.redoStack.set([]);
+    this.carry.set(null);
+    this.noHistoryBannerDismissed.set(false);
+    this.sessionActive.set(true);
+    this.persist();
+    this.saveSetupDefaults(config);
+  }
+
+  loadSetupDefaults(): UmpireSetupConfig {
+    try {
+      const raw = localStorage.getItem(UMPIRE_SETUP_DEFAULTS);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<UmpireSetupConfig>;
+        return {
+          overs: clampInt(parsed.overs ?? SETUP_DEFAULTS.overs, 1, OVERS_HARD_CAP),
+          ballsPerOver: clampInt(parsed.ballsPerOver ?? SETUP_DEFAULTS.ballsPerOver, 1, 12),
+          wickets: clampInt(parsed.wickets ?? SETUP_DEFAULTS.wickets, 1, 20),
+          showWide: parsed.showWide ?? SETUP_DEFAULTS.showWide,
+          showNoBall: parsed.showNoBall ?? SETUP_DEFAULTS.showNoBall,
+          showLb: parsed.showLb ?? SETUP_DEFAULTS.showLb,
+          showBye: parsed.showBye ?? SETUP_DEFAULTS.showBye
+        };
+      }
+    } catch { /* ignore */ }
+    return { ...SETUP_DEFAULTS };
+  }
+
+  private saveSetupDefaults(config: UmpireSetupConfig): void {
+    try {
+      localStorage.setItem(UMPIRE_SETUP_DEFAULTS, JSON.stringify(config));
+    } catch { /* ignore */ }
   }
 
   pushEvent(e: UmpireEvent): void {
@@ -117,6 +202,7 @@ export class UmpireStateService {
     this.redoStack.set([]);
     this.carry.set(null);
     this.noHistoryBannerDismissed.set(false);
+    this.sessionActive.set(false);
     this.persist();
   }
 
@@ -159,7 +245,8 @@ export class UmpireStateService {
       keypad: this.keypad(),
       events: this.events(),
       carry: this.carry(),
-      noHistoryBannerDismissed: this.noHistoryBannerDismissed()
+      noHistoryBannerDismissed: this.noHistoryBannerDismissed(),
+      sessionActive: this.sessionActive()
     };
     try {
       localStorage.setItem(UMPIRE_STORAGE_V2, JSON.stringify(payload));
@@ -207,6 +294,7 @@ export class UmpireStateService {
       this.carry.set(null);
     }
     this.noHistoryBannerDismissed.set(!!p.noHistoryBannerDismissed);
+    this.sessionActive.set(!!p.sessionActive);
   }
 
   private migrateFromV1(v1: UmpireCounterV1Payload): void {
@@ -224,6 +312,7 @@ export class UmpireStateService {
     this.redoStack.set([]);
     this.keypad.set(defaultKeypadForPreset('leather'));
     this.noHistoryBannerDismissed.set(false);
+    this.sessionActive.set(false);
   }
 
   private clampCarryToLimits(): void {

@@ -21,7 +21,7 @@ import {
         <ion-title>History</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content [fullscreen]="false" class="history-ion-content">
+    <ion-content [fullscreen]="false" class="history-ion-content app-safe-content">
       <div class="history-page">
         @if (allOvers().length === 0) {
           <div class="empty-state">
@@ -47,21 +47,24 @@ import {
                       <span class="over-current-pill">Current</span>
                     }
                   </div>
-                  <div class="over-runs-inline">
+                  <div class="over-runs-col">
                     <span class="runs-number-inline">{{ sliceTotalRuns(slice) }}</span>
                     <span class="runs-label-inline">RUNS</span>
                   </div>
                   <div class="over-balls-clip">
                     <div class="over-balls-container">
                       @for (cell of sliceBallCells(slice); track cell.key) {
-                        <div
-                          class="over-ball-box"
-                          [class.runs-4]="cell.boxClass === 'runs-4'"
-                          [class.runs-6]="cell.boxClass === 'runs-6'"
-                          [class.wicket]="cell.boxClass === 'wicket'"
-                          [class.extras]="cell.boxClass === 'extras'"
-                        >
-                          {{ cell.text }}
+                        <div class="over-ball-column">
+                          <span class="over-ball-label">{{ cell.deliveryLabel }}</span>
+                          <div
+                            class="over-ball-box"
+                            [class.runs-4]="cell.boxClass === 'runs-4'"
+                            [class.runs-6]="cell.boxClass === 'runs-6'"
+                            [class.wicket]="cell.boxClass === 'wicket'"
+                            [class.extras]="cell.boxClass === 'extras'"
+                          >
+                            {{ cell.text }}
+                          </div>
                         </div>
                       }
                     </div>
@@ -78,21 +81,12 @@ import {
     </ion-content>
   `,
   styles: [`
-    :host {
-      flex: 1 1 auto;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      width: 100%;
-    }
-
     .history-ion-content {
       --background: var(--ion-background-color, #f4f5f8);
     }
 
     .history-page {
-      padding: 16px 14px calc(16px + env(safe-area-inset-bottom, 0px));
+      padding: 16px 14px calc(16px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
     }
 
     .empty-state {
@@ -176,9 +170,9 @@ import {
 
     .over-balls-container {
       display: flex;
-      gap: 4px;
+      gap: 6px;
       flex-wrap: nowrap;
-      align-items: center;
+      align-items: flex-end;
       justify-content: flex-start;
       overflow-x: auto;
       overflow-y: hidden;
@@ -194,10 +188,10 @@ import {
 
     .over-number-col {
       display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-items: center;
-      gap: 6px;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 4px;
       min-width: 0;
     }
 
@@ -223,12 +217,12 @@ import {
       flex-shrink: 0;
     }
 
-    .over-runs-inline {
+    .over-runs-col {
       display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      align-items: baseline;
-      gap: 5px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
       white-space: nowrap;
     }
 
@@ -260,10 +254,27 @@ import {
       background: #e2e8f0;
     }
 
+    .over-ball-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .over-ball-label {
+      font-size: clamp(8px, 2vmin, 10px);
+      font-weight: 600;
+      color: var(--ion-color-medium-shade, #5f6368);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
     .over-ball-box {
       flex-shrink: 0;
-      min-width: clamp(26px, 7.5vmin, 44px);
-      height: clamp(28px, 7.5vmin, 48px);
+      min-width: clamp(28px, 7.5vmin, 44px);
+      height: clamp(28px, 7.5vmin, 44px);
       padding: 0 clamp(3px, 1vmin, 6px);
       border: 1px solid var(--border-color, #e2e8f0);
       border-radius: 6px;
@@ -308,7 +319,7 @@ import {
 export class HistoryComponent implements OnInit {
   private readonly state = inject(UmpireStateService);
 
-  readonly allOvers = computed(() => this.state.allOversBar());
+  readonly allOvers = computed(() => this.state.historyOversChronological());
   readonly derived = computed(() => this.state.derived());
   readonly scoreTotals = computed(() => this.state.scoreTotals());
 
@@ -325,7 +336,7 @@ export class HistoryComponent implements OnInit {
   }
 
   sliceBallCells(slice: UmpireOverSlice): UmpireOverBallCell[] {
-    return umpireOverSliceToBallCells(slice.events);
+    return umpireOverSliceToBallCells(slice.events, slice.overNumber);
   }
 
   overTrack(slice: UmpireOverSlice): string {

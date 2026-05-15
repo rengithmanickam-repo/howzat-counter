@@ -1,11 +1,15 @@
-import { Component, OnInit, computed, signal, viewChild, ElementRef, inject } from '@angular/core';
+import { Component, OnInit, computed, signal, inject, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonContent,
   IonButton,
+  IonIcon,
   IonNote,
+  AlertController,
   ToastController
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { refreshOutline } from 'ionicons/icons';
 import {
   chipLabel as umpireFormatChip,
   deriveScoreTotals,
@@ -25,12 +29,13 @@ import { UmpireStateService } from './umpire-state.service';
     CommonModule,
     IonContent,
     IonButton,
+    IonIcon,
     IonNote
   ],
   template: `
     <ion-content [fullscreen]="false" class="umpire-ion-content">
       <div class="umpire-page">
-        <div class="top-stack">
+        <div class="umpire-score-head">
           @if (showMigrationBanner()) {
             <div class="migrate-banner" role="status">
               <ion-note>
@@ -63,68 +68,85 @@ import { UmpireStateService } from './umpire-state.service';
             </div>
           </div>
 
-          @if (pendingWicket()) {
-            <div class="pending-banner" role="status">
+          @if (state.matchCapped()) {
+            <div class="match-complete-banner" role="status">
+              <div class="match-complete-text">Match Complete</div>
               <ion-note>
-                Wicket — tap <strong>0–6</strong> for runs completed before dismissal (e.g. run out after crossing),
-                or <strong>Done (+0)</strong> for no runs (bowled, caught, LBW, etc.).
+                @if (state.oversCapped()) {
+                  All {{ state.maxOvers() }} overs bowled.
+                } @else {
+                  All {{ state.maxWickets() }} wickets fallen.
+                }
               </ion-note>
-            </div>
-          } @else if (pendingWideNb()) {
-            <div class="pending-banner" role="status">
-              @if (pendingWideAwaitingWicket()) {
-                <ion-note>
-                  {{ pendingExtraLabel() }} + {{ pendingWideExtraRuns() }} runs. Wicket on
-                  the same delivery (e.g. run out)? Tap <strong>W</strong>, or <strong>No wicket</strong> (Done).
-                </ion-note>
-              } @else if (pendingWideNb() === 'lb') {
-                <ion-note>
-                  Leg bye — tap <strong>1–4</strong> for runs, or <strong>Done (+1)</strong> for a single leg bye.
-                </ion-note>
-              } @else if (pendingWideNb() === 'bye') {
-                <ion-note>
-                  Bye — tap <strong>1–4</strong> for runs, or <strong>Done (+1)</strong> for a single bye.
-                </ion-note>
-              } @else if (pendingWideNb() === 'wd') {
-                <ion-note>
-                  Wide — tap <strong>0–6</strong> for runs off the wide, <strong>W</strong> for a wicket on this wide
-                  (e.g. run out, 0 runs off bat), or <strong>Done (+0)</strong> for wide only.
-                </ion-note>
-              } @else {
-                <ion-note>
-                  No-ball — tap <strong>0–6</strong> for runs off the no-ball, <strong>W</strong> for a wicket on this
-                  no-ball, or <strong>Done (+0)</strong> for no-ball only.
-                </ion-note>
-              }
             </div>
           }
         </div>
 
-        @if (state.events().length > 0) {
-          <div class="recent-overs-grow">
-            <div class="recent-overs-section">
-              <div
-                class="overs-scroll-container"
-                #recentOversScroll
-                role="region"
-                aria-label="Recent overs, scroll vertically when needed"
-              >
-                @for (slice of state.recentOverBar(); track recentOverBarTrack(slice); let last = $last) {
-                  <div class="over-item">
-                    <div class="over-content">
-                      <div class="over-number-col">
-                        <span class="over-number">{{ ordinalOver(slice.overNumber) }}</span>
-                        @if (!slice.isComplete) {
-                          <span class="over-current-pill">Current</span>
-                        }
-                      </div>
-                      <div class="over-runs-inline">
-                        <span class="runs-number-inline">{{ sliceTotalRuns(slice) }}</span>
-                        <span class="runs-label-inline">RUNS</span>
-                      </div>
-                      <div class="over-balls-clip">
-                        <div class="over-balls-container">
-                          @for (cell of sliceBallCells(slice); track cell.key) {
+        <div class="umpire-mid">
+          <div class="umpire-pending-area">
+            @if (!state.matchCapped()) {
+              @if (pendingWicket()) {
+                <div class="pending-banner" role="status">
+                  <ion-note>
+                    Wicket — tap <strong>0–6</strong> for runs completed before dismissal (e.g. run out after crossing),
+                    or <strong>Done (+0)</strong> for no runs (bowled, caught, LBW, etc.).
+                  </ion-note>
+                </div>
+              } @else if (pendingWideNb()) {
+                <div class="pending-banner" role="status">
+                  @if (pendingWideAwaitingWicket()) {
+                    <ion-note>
+                      {{ pendingExtraLabel() }} + {{ pendingWideExtraRuns() }} runs. Wicket on
+                      the same delivery (e.g. run out)? Tap <strong>W</strong>, or <strong>No wicket</strong> (Done).
+                    </ion-note>
+                  } @else if (pendingWideNb() === 'lb') {
+                    <ion-note>
+                      Leg bye — tap <strong>1–4</strong> for runs, or <strong>Done (+1)</strong> for a single leg bye.
+                    </ion-note>
+                  } @else if (pendingWideNb() === 'bye') {
+                    <ion-note>
+                      Bye — tap <strong>1–4</strong> for runs, or <strong>Done (+1)</strong> for a single bye.
+                    </ion-note>
+                  } @else if (pendingWideNb() === 'wd') {
+                    <ion-note>
+                      Wide — tap <strong>0–6</strong> for runs off the wide, <strong>W</strong> for a wicket on this wide
+                      (e.g. run out, 0 runs off bat), or <strong>Done (+0)</strong> for wide only.
+                    </ion-note>
+                  } @else {
+                    <ion-note>
+                      No-ball — tap <strong>0–6</strong> for runs off the no-ball, <strong>W</strong> for a wicket on this
+                      no-ball, or <strong>Done (+0)</strong> for no-ball only.
+                    </ion-note>
+                  }
+                </div>
+              }
+            }
+          </div>
+
+          @if (state.currentOverBarSlice(); as slice) {
+            <div
+              class="current-over-strip"
+              role="region"
+              [attr.aria-label]="slice.isComplete ? 'Completed over' : 'Current over'"
+            >
+              <div class="current-over-section">
+                <div class="over-item">
+                  <div class="over-content">
+                    <div class="over-number-col">
+                      <span class="over-number">{{ ordinalOver(slice.overNumber) }}</span>
+                      @if (!slice.isComplete) {
+                        <span class="over-current-pill">Current</span>
+                      }
+                    </div>
+                    <div class="over-runs-col">
+                      <span class="runs-number-inline">{{ sliceTotalRuns(slice) }}</span>
+                      <span class="runs-label-inline">RUNS</span>
+                    </div>
+                    <div class="over-balls-clip">
+                      <div class="over-balls-container">
+                        @for (cell of sliceBallCells(slice); track cell.key) {
+                          <div class="over-ball-column">
+                            <span class="over-ball-label">{{ cell.deliveryLabel }}</span>
                             <div
                               class="over-ball-box"
                               [class.runs-4]="cell.boxClass === 'runs-4'"
@@ -134,30 +156,29 @@ import { UmpireStateService } from './umpire-state.service';
                             >
                               {{ cell.text }}
                             </div>
-                          }
-                        </div>
+                          </div>
+                        }
                       </div>
                     </div>
                   </div>
-                  @if (!last) {
-                    <div class="over-separator" aria-hidden="true"></div>
-                  }
-                }
+                </div>
               </div>
             </div>
+          }
+
+          <div class="live-region" aria-live="assertive" aria-atomic="true">
+            {{ liveAnnouncement() }}
           </div>
-        }
-
-        <div class="live-region" aria-live="assertive" aria-atomic="true">
-          {{ liveAnnouncement() }}
         </div>
+      </div>
 
-        <div class="keypad-panel">
-          <div class="keypad-row">
+      <div slot="fixed" class="keypad-panel">
+        <div class="keypad-row">
             @for (n of runKeysRow1; track n) {
               <ion-button
                 class="keypad-btn"
                 expand="block"
+                [disabled]="state.matchCapped()"
                 [attr.aria-label]="'Log ' + n + ' runs'"
                 (click)="logRuns(n)"
               >
@@ -170,6 +191,7 @@ import { UmpireStateService } from './umpire-state.service';
               <ion-button
                 class="keypad-btn"
                 expand="block"
+                [disabled]="state.matchCapped()"
                 [attr.aria-label]="'Log ' + n + ' runs'"
                 (click)="logRuns(n)"
               >
@@ -180,7 +202,7 @@ import { UmpireStateService } from './umpire-state.service';
               class="keypad-btn"
               color="danger"
               expand="block"
-              [disabled]="keyDisabledW()"
+              [disabled]="keyDisabledW() || state.matchCapped()"
               aria-label="Log wicket"
               (click)="logWicket()"
             >
@@ -192,7 +214,7 @@ import { UmpireStateService } from './umpire-state.service';
               <ion-button
                 class="keypad-btn keypad-btn--warn"
                 expand="block"
-                [disabled]="keyDisabledExtrasStart()"
+                [disabled]="keyDisabledExtrasStart() || state.matchCapped()"
                 aria-label="Log wide"
                 (click)="startWide()"
               >
@@ -203,7 +225,7 @@ import { UmpireStateService } from './umpire-state.service';
               <ion-button
                 class="keypad-btn keypad-btn--warn"
                 expand="block"
-                [disabled]="keyDisabledExtrasStart()"
+                [disabled]="keyDisabledExtrasStart() || state.matchCapped()"
                 aria-label="Log no-ball"
                 (click)="startNoBall()"
               >
@@ -214,7 +236,7 @@ import { UmpireStateService } from './umpire-state.service';
               <ion-button
                 class="keypad-btn"
                 expand="block"
-                [disabled]="keyDisabledLegalExtras()"
+                [disabled]="keyDisabledLegalExtras() || state.matchCapped()"
                 aria-label="Log leg bye"
                 (click)="logLegBye()"
               >
@@ -225,7 +247,7 @@ import { UmpireStateService } from './umpire-state.service';
               <ion-button
                 class="keypad-btn"
                 expand="block"
-                [disabled]="keyDisabledLegalExtras()"
+                [disabled]="keyDisabledLegalExtras() || state.matchCapped()"
                 aria-label="Log bye"
                 (click)="logBye()"
               >
@@ -233,33 +255,48 @@ import { UmpireStateService } from './umpire-state.service';
               </ion-button>
             }
           </div>
-          <div class="keypad-row keypad-row--meta">
-            <div class="keypad-meta-primary">
-              <ion-button
-                fill="outline"
-                expand="block"
-                class="meta-btn"
-                aria-label="Undo last ball"
-                [disabled]="!canUndo()"
-                (click)="undo()"
-              >
-                Undo
-              </ion-button>
-              <ion-button
-                fill="outline"
-                expand="block"
-                class="meta-btn"
-                aria-label="Redo last undone ball"
-                [disabled]="!state.canRedo()"
-                (click)="state.redo(); queueScrollStrip()"
-              >
-                Redo
-              </ion-button>
-            </div>
+          <div
+            class="keypad-row keypad-row--meta"
+            [class.keypad-row--meta-four]="showMetaDoneRow()"
+          >
+            <ion-button
+              fill="outline"
+              expand="block"
+              size="small"
+              class="meta-btn"
+              aria-label="Undo last ball"
+              [disabled]="!canUndo()"
+              (click)="undo()"
+            >
+              Undo
+            </ion-button>
+            <ion-button
+              fill="outline"
+              expand="block"
+              size="small"
+              class="meta-btn"
+              aria-label="Redo last undone ball"
+              [disabled]="!state.canRedo()"
+              (click)="state.redo()"
+            >
+              Redo
+            </ion-button>
+            <ion-button
+              fill="outline"
+              expand="block"
+              size="small"
+              class="meta-btn meta-btn--reset"
+              color="danger"
+              aria-label="Reset match"
+              (click)="confirmReset()"
+            >
+              <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+            </ion-button>
             @if (pendingWicket()) {
               <ion-button
                 color="tertiary"
                 expand="block"
+                size="small"
                 class="meta-btn meta-btn--done"
                 aria-label="Wicket with no runs"
                 (click)="completeWicketPending(0)"
@@ -270,6 +307,7 @@ import { UmpireStateService } from './umpire-state.service';
               <ion-button
                 color="tertiary"
                 expand="block"
+                size="small"
                 class="meta-btn meta-btn--done"
                 [attr.aria-label]="pendingDoneAriaLabel()"
                 (click)="completePendingZero()"
@@ -278,41 +316,71 @@ import { UmpireStateService } from './umpire-state.service';
               </ion-button>
             }
           </div>
-        </div>
       </div>
     </ion-content>
   `,
   styles: [
     `
       :host {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+        display: block;
         width: 100%;
-        max-width: 100%;
+        height: 100%;
       }
 
       .umpire-ion-content {
         --background: var(--ion-background-color, #f4f5f8);
-        --padding-top: 8px;
-        height: 100%;
+        --padding-top: var(--app-safe-top, max(env(safe-area-inset-top, 0px), 12px));
+        --padding-start: 0;
+        --padding-end: 0;
+        --padding-bottom: var(
+          --umpire-keypad-offset,
+          calc(248px + var(--app-safe-bottom, max(env(safe-area-inset-bottom, 0px), 12px)))
+        );
       }
 
       .umpire-page {
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-        min-height: calc(100dvh - 168px);
         box-sizing: border-box;
         width: 100%;
         max-width: 100%;
+        padding-bottom: 8px;
       }
 
-      .top-stack {
+      .umpire-score-head {
         flex: 0 0 auto;
-        padding: 0 14px 8px;
+        padding: 8px 14px 0;
+        box-sizing: border-box;
+      }
+
+      .umpire-mid {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .umpire-pending-area {
+        flex: 0 0 auto;
+        max-height: min(32vh, 280px);
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .current-over-strip {
+        margin: 0 14px 10px;
+        box-sizing: border-box;
+      }
+
+      .keypad-panel {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        z-index: 10;
+        pointer-events: auto;
+        padding: 8px 10px calc(12px + var(--app-safe-bottom, max(env(safe-area-inset-bottom, 0px), 12px)));
+        background: var(--ion-background-color, #f4f5f8);
+        border-top: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.06));
         box-sizing: border-box;
       }
 
@@ -348,7 +416,7 @@ import { UmpireStateService } from './umpire-state.service';
         width: calc(100% + 28px);
         max-width: none;
         border-radius: 0;
-        padding: 14px 16px 16px;
+        padding: 16px 16px 18px;
         box-sizing: border-box;
       }
 
@@ -364,7 +432,7 @@ import { UmpireStateService } from './umpire-state.service';
         text-align: center;
         font-variant-numeric: tabular-nums;
         line-height: 1.05;
-        font-size: clamp(2rem, 12vw, 5.85rem);
+        font-size: clamp(2.35rem, 10vw, 5.25rem);
         font-weight: 800;
         letter-spacing: -0.04em;
         overflow: hidden;
@@ -419,8 +487,8 @@ import { UmpireStateService } from './umpire-state.service';
       }
 
       .pending-banner {
-        padding: 8px 12px 12px;
-        margin-bottom: 4px;
+        padding: 0 14px 10px;
+        margin-bottom: 0;
       }
 
       .pending-banner ion-note {
@@ -428,21 +496,9 @@ import { UmpireStateService } from './umpire-state.service';
         line-height: 1.45;
       }
 
-      .recent-overs-grow {
-        flex: 1 1 0;
-        min-height: 0;
+      .current-over-section {
         display: flex;
         flex-direction: column;
-        margin: 0 14px 8px;
-        box-sizing: border-box;
-      }
-
-      .recent-overs-section {
-        flex: 1 1 0;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
         padding: 10px 6px 10px;
         background: #ffffff;
         border-radius: 12px;
@@ -451,25 +507,7 @@ import { UmpireStateService } from './umpire-state.service';
         box-sizing: border-box;
       }
 
-      .recent-overs-section .overs-scroll-container {
-        flex: 1 1 0;
-        min-height: 0;
-        height: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        flex-wrap: nowrap;
-        gap: 0;
-        overflow-x: hidden;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        padding: 4px 2px 8px;
-        scrollbar-gutter: stable;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border-color, #e2e8f0) transparent;
-      }
-
-      .recent-overs-section .over-item {
+      .current-over-section .over-item {
         display: flex;
         flex-shrink: 0;
         width: 100%;
@@ -477,26 +515,26 @@ import { UmpireStateService } from './umpire-state.service';
         padding: 4px 8px;
       }
 
-      .recent-overs-section .over-content {
+      .current-over-section .over-content {
         display: grid;
         grid-template-columns: auto auto minmax(0, 1fr);
         align-items: center;
-        column-gap: 10px;
+        column-gap: 12px;
         width: 100%;
         min-width: 0;
         box-sizing: border-box;
       }
 
-      .recent-overs-section .over-balls-clip {
+      .current-over-section .over-balls-clip {
         min-width: 0;
         overflow: hidden;
       }
 
-      .recent-overs-section .over-balls-container {
+      .current-over-section .over-balls-container {
         display: flex;
-        gap: 4px;
+        gap: 6px;
         flex-wrap: nowrap;
-        align-items: center;
+        align-items: flex-end;
         justify-content: flex-start;
         overflow-x: auto;
         overflow-y: hidden;
@@ -506,27 +544,27 @@ import { UmpireStateService } from './umpire-state.service';
         padding: 2px 0 6px;
       }
 
-      .recent-overs-section .over-balls-container::-webkit-scrollbar {
+      .current-over-section .over-balls-container::-webkit-scrollbar {
         height: 4px;
       }
-      .recent-overs-section .over-balls-container::-webkit-scrollbar-track {
+      .current-over-section .over-balls-container::-webkit-scrollbar-track {
         background: transparent;
       }
-      .recent-overs-section .over-balls-container::-webkit-scrollbar-thumb {
+      .current-over-section .over-balls-container::-webkit-scrollbar-thumb {
         background: var(--border-color, #cbd5e1);
         border-radius: 4px;
       }
 
-      .recent-overs-section .over-number-col {
+      .current-over-section .over-number-col {
         display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: center;
-        gap: 6px;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 4px;
         min-width: 0;
       }
 
-      .recent-overs-section .over-number {
+      .current-over-section .over-number {
         font-size: clamp(13px, 2.8vmin, 18px);
         font-weight: 700;
         color: var(--ion-color-medium-shade, #5f6368);
@@ -535,7 +573,7 @@ import { UmpireStateService } from './umpire-state.service';
         white-space: nowrap;
       }
 
-      .recent-overs-section .over-current-pill {
+      .current-over-section .over-current-pill {
         font-size: 9px;
         font-weight: 700;
         text-transform: uppercase;
@@ -548,16 +586,16 @@ import { UmpireStateService } from './umpire-state.service';
         flex-shrink: 0;
       }
 
-      .recent-overs-section .over-runs-inline {
+      .current-over-section .over-runs-col {
         display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: baseline;
-        gap: 5px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
         white-space: nowrap;
       }
 
-      .recent-overs-section .runs-number-inline {
+      .current-over-section .runs-number-inline {
         font-size: clamp(15px, 3.5vmin, 22px);
         font-weight: 800;
         color: var(--ion-text-color);
@@ -566,7 +604,7 @@ import { UmpireStateService } from './umpire-state.service';
         text-align: left;
       }
 
-      .recent-overs-section .runs-label-inline {
+      .current-over-section .runs-label-inline {
         font-size: clamp(9px, 2vmin, 11px);
         color: var(--ion-color-medium-shade, #5f6368);
         font-weight: 600;
@@ -575,20 +613,27 @@ import { UmpireStateService } from './umpire-state.service';
         line-height: 1.2;
       }
 
-      .recent-overs-section .over-separator {
+      .current-over-section .over-ball-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
         flex-shrink: 0;
-        align-self: stretch;
-        width: auto;
-        height: 1px;
-        min-height: 1px;
-        margin: 6px 10px;
-        background: #e2e8f0;
       }
 
-      .recent-overs-section .over-ball-box {
+      .current-over-section .over-ball-label {
+        font-size: clamp(8px, 2vmin, 10px);
+        font-weight: 600;
+        color: var(--ion-color-medium-shade, #5f6368);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .current-over-section .over-ball-box {
         flex-shrink: 0;
-        min-width: clamp(26px, 7.5vmin, 44px);
-        height: clamp(28px, 7.5vmin, 48px);
+        min-width: clamp(28px, 7.5vmin, 44px);
+        height: clamp(28px, 7.5vmin, 44px);
         padding: 0 clamp(3px, 1vmin, 6px);
         border: 1px solid var(--border-color, #e2e8f0);
         border-radius: 6px;
@@ -604,25 +649,25 @@ import { UmpireStateService } from './umpire-state.service';
         white-space: nowrap;
       }
 
-      .recent-overs-section .over-ball-box.runs-4 {
+      .current-over-section .over-ball-box.runs-4 {
         background: var(--success-green, var(--ion-color-success));
         color: white;
         border-color: var(--success-green, var(--ion-color-success));
       }
 
-      .recent-overs-section .over-ball-box.runs-6 {
+      .current-over-section .over-ball-box.runs-6 {
         background: #9333ea;
         color: white;
         border-color: #9333ea;
       }
 
-      .recent-overs-section .over-ball-box.wicket {
+      .current-over-section .over-ball-box.wicket {
         background: var(--error-red, var(--ion-color-danger));
         color: white;
         border-color: var(--error-red, var(--ion-color-danger));
       }
 
-      .recent-overs-section .over-ball-box.extras {
+      .current-over-section .over-ball-box.extras {
         background: #fef3c7;
         color: #78350f;
         border-color: #d97706;
@@ -641,19 +686,12 @@ import { UmpireStateService } from './umpire-state.service';
         border: 0;
       }
 
-      .keypad-panel {
-        flex-shrink: 0;
-        padding: 12px 12px 12px;
-        margin-top: 0;
-        background: linear-gradient(180deg, rgba(244, 245, 248, 0) 0%, var(--ion-background-color, #f4f5f8) 14px);
-        border-top: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.06));
-      }
-
       .keypad-row {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: 8px;
+        margin-bottom: 8px;
+        justify-items: center;
       }
 
       .keypad-row--extras {
@@ -661,36 +699,36 @@ import { UmpireStateService } from './umpire-state.service';
       }
 
       .keypad-row--meta {
-        display: flex;
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         margin-bottom: 0;
+        align-items: stretch;
+        justify-items: stretch;
       }
 
-      .keypad-meta-primary {
-        display: flex;
-        flex: 1 1 0;
-        min-width: 0;
-        gap: 8px;
+      .keypad-row--meta.keypad-row--meta-four {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
-      .keypad-meta-primary .meta-btn {
-        flex: 1 1 0;
-        min-width: 0;
-      }
-
-      .keypad-row--meta .meta-btn--done {
-        flex: 0 1 7.5rem;
+      .keypad-row--meta .meta-btn {
+        width: 100%;
+        margin: 0;
         min-width: 0;
       }
 
       .keypad-btn {
-        min-height: clamp(52px, 11dvh, 80px);
         margin: 0;
-        font-weight: 700;
-        font-size: clamp(1rem, 2.8dvh, 1.35rem);
+        width: 100%;
+        max-width: 72px;
+        aspect-ratio: 1;
+        min-height: 0;
+        height: auto;
+        --border-radius: 50%;
+        --padding-top: 0;
+        --padding-bottom: 0;
+        font-weight: 400;
+        font-size: clamp(1.5rem, 5vw, 1.75rem);
       }
 
       .keypad-btn--warn {
@@ -699,12 +737,48 @@ import { UmpireStateService } from './umpire-state.service';
         --border-width: 2px;
         --border-style: solid;
         --border-color: #b45309;
-        font-weight: 800;
+        font-weight: 600;
+        font-size: clamp(0.95rem, 3.2vw, 1.1rem);
       }
 
       .meta-btn {
         margin: 0;
-        min-height: clamp(46px, 9dvh, 64px);
+        min-height: 36px;
+        max-height: 38px;
+        font-size: 0.75rem;
+        --border-radius: 10px;
+        --padding-top: 4px;
+        --padding-bottom: 4px;
+      }
+
+      .meta-btn--reset {
+        min-width: 0;
+        max-width: none;
+      }
+
+      .meta-btn--reset ion-icon {
+        font-size: 1.15rem;
+      }
+
+      .match-complete-banner {
+        padding: 14px 16px;
+        margin-bottom: 8px;
+        border-radius: 12px;
+        background: rgba(var(--ion-color-success-rgb, 45, 211, 111), 0.12);
+        border: 1px solid var(--ion-color-success-shade, #28ba62);
+        text-align: center;
+      }
+
+      .match-complete-text {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--ion-color-success-shade, #28ba62);
+        margin-bottom: 4px;
+      }
+
+      .match-complete-banner ion-note {
+        font-size: 0.85rem;
+        color: var(--ion-color-medium-shade, #5f6368);
       }
     `
   ]
@@ -712,7 +786,10 @@ import { UmpireStateService } from './umpire-state.service';
 export class UmpireCounterComponent implements OnInit {
   readonly formatUmpireChip = umpireFormatChip;
   readonly state = inject(UmpireStateService);
+  private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
+
+  readonly resetDone = output<void>();
 
   readonly runKeysRow1 = [0, 1, 2, 3] as const;
   readonly runKeysRow2 = [4, 5, 6] as const;
@@ -720,8 +797,6 @@ export class UmpireCounterComponent implements OnInit {
   readonly pendingWideNb = signal<'wd' | 'nb' | 'lb' | 'bye' | null>(null);
   readonly pendingWideExtraRuns = signal<number | null>(null);
   readonly pendingWicket = signal(false);
-
-  private readonly recentOversScroll = viewChild<ElementRef<HTMLElement>>('recentOversScroll');
 
   readonly summaryAriaLabel = computed(() => {
     const runs = this.state.scoreTotals().battingRunsPlusExtras;
@@ -789,9 +864,14 @@ export class UmpireCounterComponent implements OnInit {
     () => this.pendingWideNb() !== null || this.pendingWicket() || this.state.events().length > 0
   );
 
+  readonly showMetaDoneRow = computed(() => this.pendingWicket() || this.pendingWideNb() !== null);
+
+  constructor() {
+    addIcons({ refreshOutline });
+  }
+
   ngOnInit(): void {
     this.state.ensureLoaded();
-    this.queueScrollStrip();
   }
 
   ordinalOver(n: number): string {
@@ -803,11 +883,7 @@ export class UmpireCounterComponent implements OnInit {
   }
 
   sliceBallCells(slice: UmpireOverSlice): UmpireOverBallCell[] {
-    return umpireOverSliceToBallCells(slice.events);
-  }
-
-  recentOverBarTrack(slice: UmpireOverSlice): string {
-    return `${slice.overNumber}-${slice.isComplete ? 'c' : 'o'}-${slice.events.map(e => e.id).join('.')}`;
+    return umpireOverSliceToBallCells(slice.events, slice.overNumber);
   }
 
   logRuns(n: number): void {
@@ -900,16 +976,28 @@ export class UmpireCounterComponent implements OnInit {
       return;
     }
     this.state.undoEvent();
-    this.queueScrollStrip();
   }
 
-  queueScrollStrip(): void {
-    requestAnimationFrame(() => this.scrollRecentOversBar());
-  }
-
-  private scrollRecentOversBar(): void {
-    const el = this.recentOversScroll()?.nativeElement;
-    if (el) el.scrollTop = 0;
+  async confirmReset(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Reset match?',
+      message: 'All scoring data will be cleared and you will return to the start screen.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Reset',
+          role: 'destructive',
+          handler: () => {
+            this.pendingWideNb.set(null);
+            this.pendingWideExtraRuns.set(null);
+            this.pendingWicket.set(false);
+            this.state.resetAll();
+            this.resetDone.emit();
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   private completeExtra(extra: number, wicketOnDelivery: boolean): void {
@@ -925,7 +1013,6 @@ export class UmpireCounterComponent implements OnInit {
 
   private pushEvent(e: UmpireEvent): void {
     this.state.pushEvent(e);
-    this.queueScrollStrip();
   }
 
   private async toast(message: string): Promise<void> {

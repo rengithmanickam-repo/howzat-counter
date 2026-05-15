@@ -169,18 +169,38 @@ export function getRecentOverBarSlices(history: readonly UmpireOverSlice[], max 
 export interface UmpireOverBallCell {
   key: string;
   text: string;
+  /** e.g. "3.4" — over number and legal ball in that over */
+  deliveryLabel: string;
   boxClass: string;
 }
 
 /**
- * One small box per delivery, most recent first (same order as live `getReversedBalls`).
+ * One column per delivery (label + score box), most recent first.
  */
-export function umpireOverSliceToBallCells(events: readonly UmpireEvent[]): UmpireOverBallCell[] {
-  return [...events].reverse().map(e => ({
-    key: e.id,
-    text: umpireEventBallText(e),
-    boxClass: umpireEventBallClass(e)
-  }));
+export function umpireOverSliceToBallCells(
+  events: readonly UmpireEvent[],
+  overNumber: number
+): UmpireOverBallCell[] {
+  let legalInOver = 0;
+  const cells: UmpireOverBallCell[] = [];
+
+  for (const e of events) {
+    const legalBefore = legalInOver;
+    if (isLegalConsumer(e.kind)) {
+      legalInOver++;
+    }
+    const ballInOver = isLegalConsumer(e.kind) ? legalInOver : Math.max(1, legalBefore + 1);
+    const deliveryLabel = `${overNumber}.${ballInOver}`;
+
+    cells.push({
+      key: e.id,
+      text: umpireEventBallText(e),
+      deliveryLabel,
+      boxClass: umpireEventBallClass(e)
+    });
+  }
+
+  return cells.reverse();
 }
 
 function umpireEventBallClass(e: UmpireEvent): string {
