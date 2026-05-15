@@ -3,6 +3,8 @@ import {
   UMPIRE_STORAGE_V1,
   UMPIRE_STORAGE_V2,
   UMPIRE_SETUP_DEFAULTS,
+  UMPIRE_APP_PREFS,
+  type UmpireAppPrefs,
   type UmpireCarry,
   type UmpireCounterV1Payload,
   type UmpireCounterV2Payload,
@@ -13,9 +15,15 @@ import {
 } from './umpire-counter.model';
 import {
   buildOverHistory,
+  computeChaseStatus,
+  computeRunRate,
   defaultKeypadForPreset,
+  deriveExtrasBreakdown,
   deriveScoreTotals,
   deriveState,
+  formatExtrasBreakdown,
+  formatScorecardShare,
+  isBetweenOversPause,
   newEventId
 } from './umpire-counter-logic';
 
@@ -29,12 +37,25 @@ const SETUP_DEFAULTS: UmpireSetupConfig = {
   showWide: true,
   showNoBall: true,
   showLb: false,
-  showBye: false
+  showBye: false,
+  battingSecond: false,
+  chaseTarget: undefined
 };
 
 function clampInt(n: unknown, min: number, max: number): number {
   const x = typeof n === 'number' && !Number.isNaN(n) ? Math.trunc(n) : min;
   return Math.min(max, Math.max(min, x));
+}
+
+function normalizeChaseSetupFields(
+  parsed: Partial<UmpireSetupConfig>
+): Pick<UmpireSetupConfig, 'battingSecond' | 'chaseTarget'> {
+  const chaseTarget = clampInt(parsed.chaseTarget ?? 0, 0, 9999);
+  const battingSecond = !!parsed.battingSecond && chaseTarget > 0;
+  return {
+    battingSecond,
+    chaseTarget: battingSecond ? chaseTarget : undefined
+  };
 }
 
 function sanitizeEvents(raw: unknown): UmpireEvent[] {
@@ -76,6 +97,15 @@ export class UmpireStateService {
   readonly keypad = signal<UmpireKeypad>(defaultKeypadForPreset('leather'));
   readonly noHistoryBannerDismissed = signal(false);
   readonly sessionActive = signal(false);
+  readonly teamName = signal('');
+  /** Runs to win when batting second; 0 = no chase. */
+  readonly chaseTarget = signal(0);
+
+  readonly hapticEnabled = signal(true);
+  readonly wicketSoundEnabled = signal(false);
+
+  /** Bumped when setup form should reload defaults (e.g. after match reset). */
+  readonly setupDefaultsRevision = signal(0);
 
   readonly limitsSig = computed(() => ({
     ballsPerOver: this.ballsPerOver(),
@@ -85,6 +115,10 @@ export class UmpireStateService {
 
   readonly derived = computed(() => deriveState(this.events(), this.limitsSig(), this.carry()));
   readonly scoreTotals = computed(() => deriveScoreTotals(this.events()));
+
+  readonly extrasBreakdownLabel = computed(() =>
+    formatExtrasBreakdown(deriveExtrasBreakdown(this.events()))
+  );
   readonly overHistory = computed(() => buildOverHistory(this.events(), this.limitsSig(), this.carry()));
 
   /**
@@ -99,6 +133,31 @@ export class UmpireStateService {
     if (h.length < 2) return null;
     const prev = h[h.length - 2]!;
     return prev.isComplete && prev.events.length > 0 ? prev : null;
+  });
+
+  readonly betweenOversPause = computed(() => isBetweenOversPause(this.overHistory()));
+
+  readonly runRate = computed(() => {
+    if (this.maxOvers() <= 0) return null;
+    const totals = this.scoreTotals();
+    return computeRunRate(
+      totals.battingRunsPlusExtras,
+      this.derived().oversDecimal,
+      this.ballsPerOver()
+    );
+  });
+
+  readonly chaseStatus = computed(() => {
+    const target = this.chaseTarget();
+    if (target <= 0) return null;
+    const totals = this.scoreTotals();
+    return computeChaseStatus(
+      target,
+      totals.battingRunsPlusExtras,
+      this.derived(),
+      this.maxOvers(),
+      this.ballsPerOver()
+    );
   });
 
   /** History tab: every over that has at least one logged ball, oldest first. */
@@ -119,12 +178,75 @@ export class UmpireStateService {
     return this.oversCapped() || this.derived().wicketsCapped;
   });
 
+  readonly chaseTargetReached = computed(() => this.chaseStatus()?.targetReached ?? false);
+
+  /** No further balls can be logged (innings over or chase won). */
+  readonly scoringLocked = computed(() => this.matchCapped() || this.chaseTargetReached());
+
   private loaded = false;
 
   ensureLoaded(): void {
     if (this.loaded) return;
     this.loaded = true;
+    this.loadAppPrefs();
     this.load();
+  }
+
+  loadAppPrefs(): UmpireAppPrefs {
+    const defaults: UmpireAppPrefs = { hapticEnabled: true, wicketSoundEnabled: false };
+    try {
+      const raw = localStorage.getItem(UMPIRE_APP_PREFS);
+      if (raw) {
+        const p = JSON.parse(raw) as Partial<UmpireAppPrefs>;
+        this.hapticEnabled.set(p.hapticEnabled !== false);
+        this.wicketSoundEnabled.set(!!p.wicketSoundEnabled);
+        return {
+          hapticEnabled: p.hapticEnabled !== false,
+          wicketSoundEnabled: !!p.wicketSoundEnabled
+        };
+      }
+    } catch { /* ignore */ }
+    this.hapticEnabled.set(defaults.hapticEnabled);
+    this.wicketSoundEnabled.set(defaults.wicketSoundEnabled);
+    return defaults;
+  }
+
+  saveAppPrefs(): void {
+    const payload: UmpireAppPrefs = {
+      hapticEnabled: this.hapticEnabled(),
+      wicketSoundEnabled: this.wicketSoundEnabled()
+    };
+    try {
+      localStorage.setItem(UMPIRE_APP_PREFS, JSON.stringify(payload));
+    } catch { /* ignore */ }
+  }
+
+  setHapticEnabled(on: boolean): void {
+    this.hapticEnabled.set(on);
+    this.saveAppPrefs();
+  }
+
+  setWicketSoundEnabled(on: boolean): void {
+    this.wicketSoundEnabled.set(on);
+    this.saveAppPrefs();
+  }
+
+  setTeamName(name: string): void {
+    this.teamName.set(name.trim());
+    this.persist();
+  }
+
+  scorecardShareText(): string {
+    return formatScorecardShare({
+      teamName: this.teamName() || undefined,
+      totals: this.scoreTotals(),
+      oversDecimal: this.derived().oversDecimal,
+      wickets: this.derived().wickets,
+      maxOvers: this.maxOvers(),
+      ballsPerOver: this.ballsPerOver(),
+      overs: this.historyOversChronological(),
+      chaseStatus: this.chaseStatus()
+    });
   }
 
   startSession(config: UmpireSetupConfig): void {
@@ -142,9 +264,12 @@ export class UmpireStateService {
     this.redoStack.set([]);
     this.carry.set(null);
     this.noHistoryBannerDismissed.set(false);
+    this.teamName.set(config.teamName?.trim() ?? '');
+    const chase = normalizeChaseSetupFields(config);
+    this.chaseTarget.set(chase.chaseTarget ?? 0);
     this.sessionActive.set(true);
     this.persist();
-    this.saveSetupDefaults(config);
+    this.saveSetupDefaults({ ...config, ...chase });
   }
 
   loadSetupDefaults(): UmpireSetupConfig {
@@ -159,11 +284,16 @@ export class UmpireStateService {
           showWide: parsed.showWide ?? SETUP_DEFAULTS.showWide,
           showNoBall: parsed.showNoBall ?? SETUP_DEFAULTS.showNoBall,
           showLb: parsed.showLb ?? SETUP_DEFAULTS.showLb,
-          showBye: parsed.showBye ?? SETUP_DEFAULTS.showBye
+          showBye: parsed.showBye ?? SETUP_DEFAULTS.showBye,
+          teamName: typeof parsed.teamName === 'string' ? parsed.teamName : '',
+          ...normalizeChaseSetupFields(parsed)
         };
       }
     } catch { /* ignore */ }
-    return { ...SETUP_DEFAULTS };
+    return {
+      ...SETUP_DEFAULTS,
+      teamName: ''
+    };
   }
 
   private saveSetupDefaults(config: UmpireSetupConfig): void {
@@ -173,6 +303,7 @@ export class UmpireStateService {
   }
 
   pushEvent(e: UmpireEvent): void {
+    if (this.scoringLocked()) return;
     this.redoStack.set([]);
     this.events.update(arr => [...arr, e]);
     this.persist();
@@ -202,8 +333,29 @@ export class UmpireStateService {
     this.redoStack.set([]);
     this.carry.set(null);
     this.noHistoryBannerDismissed.set(false);
+    this.teamName.set('');
+    this.chaseTarget.set(0);
     this.sessionActive.set(false);
+    this.clearChaseSetupDefaults();
     this.persist();
+  }
+
+  /** Clear batting side, chase target, and toggle for a fresh match (Start or Reset). */
+  clearChaseSetupDefaults(): void {
+    try {
+      const raw = localStorage.getItem(UMPIRE_SETUP_DEFAULTS);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, unknown>;
+        delete parsed['battingSecond'];
+        delete parsed['chaseTarget'];
+        delete parsed['teamName'];
+        parsed['battingSecond'] = false;
+        localStorage.setItem(UMPIRE_SETUP_DEFAULTS, JSON.stringify(parsed));
+      }
+    } catch { /* ignore */ }
+    this.teamName.set('');
+    this.chaseTarget.set(0);
+    this.setupDefaultsRevision.update(n => n + 1);
   }
 
   dismissMigrationBanner(): void {
@@ -246,7 +398,9 @@ export class UmpireStateService {
       events: this.events(),
       carry: this.carry(),
       noHistoryBannerDismissed: this.noHistoryBannerDismissed(),
-      sessionActive: this.sessionActive()
+      sessionActive: this.sessionActive(),
+      ...(this.teamName() ? { teamName: this.teamName() } : {}),
+      ...(this.chaseTarget() > 0 ? { chaseTarget: this.chaseTarget() } : {})
     };
     try {
       localStorage.setItem(UMPIRE_STORAGE_V2, JSON.stringify(payload));
@@ -295,6 +449,8 @@ export class UmpireStateService {
     }
     this.noHistoryBannerDismissed.set(!!p.noHistoryBannerDismissed);
     this.sessionActive.set(!!p.sessionActive);
+    this.teamName.set(typeof p.teamName === 'string' ? p.teamName.trim() : '');
+    this.chaseTarget.set(clampInt(p.chaseTarget ?? 0, 0, 9999));
   }
 
   private migrateFromV1(v1: UmpireCounterV1Payload): void {

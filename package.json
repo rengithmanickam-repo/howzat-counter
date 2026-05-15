@@ -1,6 +1,6 @@
 {
   "name": "howzat-counter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -10,7 +10,8 @@
     "build:android": "npm run build && npx cap sync android",
     "cap:sync": "npx cap sync",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "test:unit": "vitest run"
   },
   "private": true,
   "dependencies": {
@@ -25,10 +26,13 @@
     "@capacitor/android": "^8.0.2",
     "@capacitor/cli": "^8.0.2",
     "@capacitor/core": "^8.0.2",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.0.2",
+    "@capacitor/share": "^8.0.1",
     "@ionic/angular": "^8.7.17",
     "@ionic/core": "^8.7.17",
     "ionicons": "^7.4.0",
+    "mermaid": "^11.15.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"
@@ -38,6 +42,7 @@
     "@angular/cli": "^19.0.0",
     "@angular/compiler-cli": "^19.0.0",
     "@ionic/angular-toolkit": "^12.3.0",
-    "typescript": "~5.6.0"
+    "typescript": "~5.6.0",
+    "vitest": "^3.2.4"
   }
 }

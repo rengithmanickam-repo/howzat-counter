@@ -27,9 +27,26 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
     </ion-header>
     <ion-content [fullscreen]="false" class="settings-ion-content app-safe-content">
       <div class="settings-page">
+        <div class="section-card">
+          <h2 class="section-title">Feedback</h2>
+          <ion-list>
+            <ion-item>
+              <ion-toggle [checked]="state.hapticEnabled()" (ionChange)="onHaptic($event)">Haptic on keypad</ion-toggle>
+            </ion-item>
+            <ion-item>
+              <ion-toggle [checked]="state.wicketSoundEnabled()" (ionChange)="onWicketSound($event)">
+                Sound on wicket
+              </ion-toggle>
+            </ion-item>
+          </ion-list>
+        </div>
+
         @if (state.sessionActive()) {
           <div class="section-card">
             <h2 class="section-title">Current Match</h2>
+            @if (state.teamName()) {
+              <div class="match-team">{{ state.teamName() }}</div>
+            }
             <div class="match-info">
               <div class="info-row">
                 <span class="info-label">Overs</span>
@@ -43,6 +60,12 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
                 <span class="info-label">Max wickets</span>
                 <span class="info-value">{{ state.maxWickets() }}</span>
               </div>
+              @if (state.chaseTarget() > 0) {
+                <div class="info-row">
+                  <span class="info-label">Chase target</span>
+                  <span class="info-value">{{ state.chaseTarget() }}</span>
+                </div>
+              }
             </div>
             <ion-note class="section-hint">
               Match limits are set during setup. Reset the match to change them.
@@ -74,7 +97,7 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
         <div class="section-card section-card--info">
           <h2 class="section-title">About</h2>
           <ion-note class="section-hint">
-            Howzat - Counter v1.0.0<br>
+            Howzat - Counter v1.1.0 (2)<br>
             Cricket umpire scoring counter.
           </ion-note>
         </div>
@@ -127,6 +150,13 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
       line-height: 1.45;
     }
 
+    .match-team {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--ion-color-primary-shade, #4854e0);
+    }
+
     .match-info {
       display: flex;
       flex-direction: column;
@@ -164,5 +194,15 @@ export class SettingsComponent implements OnInit {
   onToggle(key: 'showWide' | 'showNoBall' | 'showLb' | 'showBye', ev: Event): void {
     const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
     this.state.updateKeypad({ [key]: !!checked });
+  }
+
+  onHaptic(ev: Event): void {
+    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
+    this.state.setHapticEnabled(!!checked);
+  }
+
+  onWicketSound(ev: Event): void {
+    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
+    this.state.setWicketSoundEnabled(!!checked);
   }
 }

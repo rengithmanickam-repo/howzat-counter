@@ -1,9 +1,9 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonNote } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, ToastController } from '@ionic/angular/standalone';
+import { Capacitor } from '@capacitor/core';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
 import {
-  chipLabel,
   deriveScoreTotals,
   formatOrdinalOver,
   umpireOverSliceToBallCells,
@@ -14,7 +14,7 @@ import {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonNote],
+  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButton],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -28,16 +28,39 @@ import {
             <ion-note>No overs logged yet. Start scoring on the Home tab.</ion-note>
           </div>
         } @else {
+          @if (state.teamName()) {
+            <div class="history-team">{{ state.teamName() }}</div>
+          }
           <div class="score-summary">
             <span class="score-total">{{ scoreTotals().battingRunsPlusExtras }}/{{ derived().wickets }}</span>
             <span class="score-overs">({{ derived().oversDecimal }} overs)</span>
           </div>
           <div class="score-breakdown">
-            <span class="breakdown-item">Bat: {{ scoreTotals().battingRuns }}</span>
-            <span class="breakdown-sep">|</span>
-            <span class="breakdown-item">Extras: {{ scoreTotals().extrasRuns }}</span>
+            <span class="breakdown-item">Extras: {{ state.extrasBreakdownLabel() }}</span>
+            @if (state.runRate(); as rr) {
+              <span class="breakdown-sep">|</span>
+              <span class="breakdown-item">RR {{ rr }}</span>
+            }
           </div>
-          <div class="overs-list">
+          @if (state.chaseStatus(); as chase) {
+            <div class="chase-summary">
+              @if (chase.targetReached) {
+                Target {{ chase.target }} reached
+              } @else {
+                Need {{ chase.runsNeeded }} to win
+                @if (chase.ballsRemaining !== null) {
+                  from {{ chase.ballsRemaining }} balls
+                }
+                @if (chase.requiredRunRate) {
+                  · RRR {{ chase.requiredRunRate }}
+                }
+              }
+            </div>
+          }
+          <ion-button expand="block" fill="outline" size="small" class="share-btn" (click)="shareScorecard()">
+            Share scorecard
+          </ion-button>
+          <div class="overs-list over-strip">
             @for (slice of allOvers(); track overTrack(slice); let last = $last) {
               <div class="over-item">
                 <div class="over-content">
@@ -89,6 +112,16 @@ import {
       padding: 16px 14px calc(16px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
     }
 
+    .history-team {
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ion-color-medium-shade, #5f6368);
+      margin-bottom: 8px;
+    }
+
     .empty-state {
       display: flex;
       align-items: center;
@@ -126,15 +159,30 @@ import {
 
     .score-breakdown {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 8px 10px;
+      margin-bottom: 12px;
       font-size: 0.85rem;
       color: var(--ion-color-medium-shade, #5f6368);
     }
 
     .breakdown-sep {
       opacity: 0.4;
+    }
+
+    .chase-summary {
+      text-align: center;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #b45309;
+      margin: -4px 0 12px;
+      line-height: 1.4;
+    }
+
+    .share-btn {
+      margin-bottom: 14px;
+      --border-radius: 10px;
     }
 
     .overs-list {
@@ -144,180 +192,11 @@ import {
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       padding: 10px 6px;
     }
-
-    .over-item {
-      display: flex;
-      flex-shrink: 0;
-      width: 100%;
-      box-sizing: border-box;
-      padding: 4px 8px;
-    }
-
-    .over-content {
-      display: grid;
-      grid-template-columns: auto auto minmax(0, 1fr);
-      align-items: center;
-      column-gap: 10px;
-      width: 100%;
-      min-width: 0;
-      box-sizing: border-box;
-    }
-
-    .over-balls-clip {
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    .over-balls-container {
-      display: flex;
-      gap: 6px;
-      flex-wrap: nowrap;
-      align-items: flex-end;
-      justify-content: flex-start;
-      overflow-x: auto;
-      overflow-y: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border-color, #e2e8f0) transparent;
-      padding: 2px 0 6px;
-    }
-
-    .over-balls-container::-webkit-scrollbar { height: 4px; }
-    .over-balls-container::-webkit-scrollbar-track { background: transparent; }
-    .over-balls-container::-webkit-scrollbar-thumb { background: var(--border-color, #cbd5e1); border-radius: 4px; }
-
-    .over-number-col {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 4px;
-      min-width: 0;
-    }
-
-    .over-number {
-      font-size: clamp(13px, 2.8vmin, 18px);
-      font-weight: 700;
-      color: var(--ion-color-medium-shade, #5f6368);
-      font-variant-numeric: tabular-nums;
-      line-height: 1.1;
-      white-space: nowrap;
-    }
-
-    .over-current-pill {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.12);
-      color: var(--ion-color-primary-shade, #4854e0);
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .over-runs-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 2px;
-      white-space: nowrap;
-    }
-
-    .runs-number-inline {
-      font-size: clamp(15px, 3.5vmin, 22px);
-      font-weight: 800;
-      color: var(--ion-text-color);
-      font-variant-numeric: tabular-nums;
-      line-height: 1.2;
-      text-align: left;
-    }
-
-    .runs-label-inline {
-      font-size: clamp(9px, 2vmin, 11px);
-      color: var(--ion-color-medium-shade, #5f6368);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      line-height: 1.2;
-    }
-
-    .over-separator {
-      flex-shrink: 0;
-      align-self: stretch;
-      width: auto;
-      height: 1px;
-      min-height: 1px;
-      margin: 6px 10px;
-      background: #e2e8f0;
-    }
-
-    .over-ball-column {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      flex-shrink: 0;
-    }
-
-    .over-ball-label {
-      font-size: clamp(8px, 2vmin, 10px);
-      font-weight: 600;
-      color: var(--ion-color-medium-shade, #5f6368);
-      font-variant-numeric: tabular-nums;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    .over-ball-box {
-      flex-shrink: 0;
-      min-width: clamp(28px, 7.5vmin, 44px);
-      height: clamp(28px, 7.5vmin, 44px);
-      padding: 0 clamp(3px, 1vmin, 6px);
-      border: 1px solid var(--border-color, #e2e8f0);
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: clamp(8px, 2.1vmin, 12px);
-      font-weight: 700;
-      color: var(--ion-text-color);
-      background: #f8fafc;
-      line-height: 1;
-      box-sizing: border-box;
-      white-space: nowrap;
-    }
-
-    .over-ball-box.runs-4 {
-      background: var(--success-green, var(--ion-color-success));
-      color: white;
-      border-color: var(--success-green, var(--ion-color-success));
-    }
-
-    .over-ball-box.runs-6 {
-      background: #9333ea;
-      color: white;
-      border-color: #9333ea;
-    }
-
-    .over-ball-box.wicket {
-      background: var(--error-red, var(--ion-color-danger));
-      color: white;
-      border-color: var(--error-red, var(--ion-color-danger));
-    }
-
-    .over-ball-box.extras {
-      background: #fef3c7;
-      color: #78350f;
-      border-color: #d97706;
-      font-weight: 800;
-    }
   `]
 })
 export class HistoryComponent implements OnInit {
-  private readonly state = inject(UmpireStateService);
+  readonly state = inject(UmpireStateService);
+  private readonly toastController = inject(ToastController);
 
   readonly allOvers = computed(() => this.state.historyOversChronological());
   readonly derived = computed(() => this.state.derived());
@@ -341,5 +220,35 @@ export class HistoryComponent implements OnInit {
 
   overTrack(slice: UmpireOverSlice): string {
     return `${slice.overNumber}-${slice.isComplete ? 'c' : 'o'}-${slice.events.map(e => e.id).join('.')}`;
+  }
+
+  async shareScorecard(): Promise<void> {
+    const text = this.state.scorecardShareText();
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({ title: 'Scorecard', text, dialogTitle: 'Share scorecard' });
+        return;
+      }
+      if (navigator.share) {
+        await navigator.share({ title: 'Scorecard', text });
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      await this.toast('Scorecard copied to clipboard');
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(text);
+        await this.toast('Scorecard copied to clipboard');
+      } catch {
+        await this.toast('Could not share scorecard');
+      }
+    }
+  }
+
+  private async toast(message: string): Promise<void> {
+    const t = await this.toastController.create({ message, duration: 2000, position: 'bottom' });
+    await t.present();
   }
 }

@@ -14,7 +14,7 @@ type HomeView = 'start' | 'setup' | 'counter';
   template: `
     @switch (view()) {
       @case ('start') {
-        <app-start (startTap)="view.set('setup')" />
+        <app-start (startTap)="onStartTap()" />
       }
       @case ('setup') {
         <app-setup (matchStarted)="view.set('counter')" (backTap)="view.set('start')" />
@@ -49,5 +49,10 @@ export class HomeComponent implements OnInit {
     if (this.state.sessionActive()) {
       this.view.set('counter');
     }
+  }
+
+  onStartTap(): void {
+    this.state.clearChaseSetupDefaults();
+    this.view.set('setup');
   }
 }

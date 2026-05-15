@@ -43,6 +43,9 @@ export interface UmpireCounterV2Payload {
   carry?: UmpireCarry | null;
   noHistoryBannerDismissed?: boolean;
   sessionActive?: boolean;
+  teamName?: string;
+  /** Runs required to win when batting second (e.g. opposition total + 1). 0 = not chasing. */
+  chaseTarget?: number;
 }
 
 export interface UmpireSetupConfig {
@@ -53,7 +56,20 @@ export interface UmpireSetupConfig {
   showNoBall: boolean;
   showLb: boolean;
   showBye: boolean;
+  /** Optional batting side label for scorecard / share */
+  teamName?: string;
+  /** Batting second — set a chase target (runs to win). */
+  battingSecond?: boolean;
+  /** Runs to win; used when `battingSecond` is true (e.g. 152 if opposition made 151). */
+  chaseTarget?: number;
 }
+
+export interface UmpireAppPrefs {
+  hapticEnabled: boolean;
+  wicketSoundEnabled: boolean;
+}
+
+export const UMPIRE_APP_PREFS = 'umpireAppPrefs';
 
 export const UMPIRE_STORAGE_V1 = 'umpireCounterV1';
 export const UMPIRE_STORAGE_V2 = 'umpireCounterV2';

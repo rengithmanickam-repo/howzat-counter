@@ -151,10 +151,18 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.02em;
 }
 
-/* Smooth Transitions */
-* {
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+/* Transitions on interactive surfaces only (avoids sluggish global repaints) */
+ion-button,
+ion-card,
+ion-item,
+.section-card,
+.summary-card,
+.keypad-btn,
+.over-ball-box {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+
+@import './styles/over-strip.scss';
 
 /* Enhanced Card Styles */
 ion-card {
@@ -242,4 +250,36 @@ ion-header ion-toolbar {
 /* Extra scroll padding above tab bar / home indicator */
 ion-content.app-safe-content {
   --padding-bottom: var(--app-safe-bottom);
+}
+
+.umpire-toast {
+  --background: var(--ion-color-dark, #222428);
+  --color: #fff;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color: #121212;
+    --ion-background-color-rgb: 18, 18, 18;
+    --ion-text-color: #f4f4f5;
+    --ion-text-color-rgb: 244, 244, 245;
+    --ion-border-color: #2d2d30;
+    --ion-card-background: #1e1e1e;
+    --ion-toolbar-background: #1a1a1a;
+    --ion-item-background: #1e1e1e;
+    --ion-item-border-color: #2d2d30;
+    --border-color: #2d2d30;
+    --bg-light: #1a1a1a;
+  }
+
+  .current-over-section.over-strip,
+  .overs-list.over-strip,
+  .section-card {
+    background: var(--ion-card-background, #1e1e1e);
+  }
+
+  .over-strip .over-ball-box {
+    background: #2a2a2e;
+  }
 }

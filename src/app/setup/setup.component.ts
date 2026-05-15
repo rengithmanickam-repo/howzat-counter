@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, output, signal } from '@angular/core';
+import { Component, OnInit, effect, inject, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonButton,
@@ -6,7 +6,8 @@ import {
   IonItem,
   IonToggle,
   IonList,
-  IonInput
+  IonInput,
+  ToastController
 } from '@ionic/angular/standalone';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
 import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
@@ -20,6 +21,22 @@ import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
       <div class="setup-page">
         <h1 class="setup-title">Match Setup</h1>
         <p class="setup-hint">Configure the match before you start scoring.</p>
+
+        <div class="section-card">
+          <h2 class="section-heading">Team (optional)</h2>
+          <ion-list lines="full" class="setup-list">
+            <ion-item>
+              <ion-input
+                label="Batting side"
+                labelPlacement="stacked"
+                helperText="Shown on the scorecard and when sharing"
+                type="text"
+                [value]="teamName()"
+                (ionInput)="onTeamNameInput($event)"
+              ></ion-input>
+            </ion-item>
+          </ion-list>
+        </div>
 
         <div class="section-card">
           <h2 class="section-heading">Match Rules</h2>
@@ -57,6 +74,32 @@ import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
                 (ionInput)="onInput('wickets', $event)"
               ></ion-input>
             </ion-item>
+          </ion-list>
+        </div>
+
+        <div class="section-card">
+          <h2 class="section-heading">Batting second</h2>
+          <ion-list lines="full" class="setup-list">
+            @for (rev of [formRevision()]; track rev) {
+              <ion-item>
+                <ion-toggle [checked]="battingSecond()" (ionChange)="onBattingSecond($event)">
+                  Chasing a target
+                </ion-toggle>
+              </ion-item>
+              @if (battingSecond()) {
+                <ion-item>
+                  <ion-input
+                    label="Target (runs to win)"
+                    labelPlacement="stacked"
+                    helperText="e.g. opposition score + 1 — used for runs needed and required run rate"
+                    type="number"
+                    inputmode="numeric"
+                    [value]="chaseTarget()"
+                    (ionInput)="onChaseTargetInput($event)"
+                  ></ion-input>
+                </ion-item>
+              }
+            }
           </ion-list>
         </div>
 
@@ -181,6 +224,7 @@ import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
 })
 export class SetupComponent implements OnInit {
   private readonly state = inject(UmpireStateService);
+  private readonly toastController = inject(ToastController);
 
   readonly overs = signal('20');
   readonly ballsPerOver = signal('6');
@@ -189,11 +233,27 @@ export class SetupComponent implements OnInit {
   readonly showNoBall = signal(true);
   readonly showLb = signal(false);
   readonly showBye = signal(false);
+  readonly teamName = signal('');
+  readonly battingSecond = signal(false);
+  readonly chaseTarget = signal('');
+  /** Forces ion-toggle to remount when defaults reload after reset. */
+  readonly formRevision = signal(0);
 
   readonly matchStarted = output<void>();
   readonly backTap = output<void>();
 
+  constructor() {
+    effect(() => {
+      this.state.setupDefaultsRevision();
+      this.applyDefaultsFromStorage();
+    });
+  }
+
   ngOnInit(): void {
+    this.applyDefaultsFromStorage();
+  }
+
+  private applyDefaultsFromStorage(): void {
     const defaults = this.state.loadSetupDefaults();
     this.overs.set(String(defaults.overs));
     this.ballsPerOver.set(String(defaults.ballsPerOver));
@@ -202,6 +262,28 @@ export class SetupComponent implements OnInit {
     this.showNoBall.set(defaults.showNoBall);
     this.showLb.set(defaults.showLb);
     this.showBye.set(defaults.showBye);
+    this.teamName.set(defaults.teamName ?? '');
+    this.battingSecond.set(!!defaults.battingSecond);
+    this.chaseTarget.set(
+      defaults.battingSecond && (defaults.chaseTarget ?? 0) > 0 ? String(defaults.chaseTarget) : ''
+    );
+    this.formRevision.update(n => n + 1);
+  }
+
+  onBattingSecond(ev: Event): void {
+    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
+    this.battingSecond.set(!!checked);
+    if (!checked) this.chaseTarget.set('');
+  }
+
+  onChaseTargetInput(ev: Event): void {
+    const val = String((ev as CustomEvent<{ value?: string | null }>).detail?.value ?? '');
+    this.chaseTarget.set(val);
+  }
+
+  onTeamNameInput(ev: Event): void {
+    const val = String((ev as CustomEvent<{ value?: string | null }>).detail?.value ?? '');
+    this.teamName.set(val);
   }
 
   onInput(field: 'overs' | 'ballsPerOver' | 'wickets', ev: Event): void {
@@ -220,6 +302,12 @@ export class SetupComponent implements OnInit {
   }
 
   onStartMatch(): void {
+    const battingSecond = this.battingSecond();
+    const chase = battingSecond ? this.parseNum(this.chaseTarget(), 1, 9999, 0) : 0;
+    if (battingSecond && chase <= 0) {
+      void this.toast('Enter a target (runs to win) when chasing.');
+      return;
+    }
     const config: UmpireSetupConfig = {
       overs: this.parseNum(this.overs(), 1, 999, 20),
       ballsPerOver: this.parseNum(this.ballsPerOver(), 1, 12, 6),
@@ -227,7 +315,10 @@ export class SetupComponent implements OnInit {
       showWide: this.showWide(),
       showNoBall: this.showNoBall(),
       showLb: this.showLb(),
-      showBye: this.showBye()
+      showBye: this.showBye(),
+      teamName: this.teamName().trim() || undefined,
+      battingSecond,
+      chaseTarget: chase > 0 ? chase : undefined
     };
     this.state.startSession(config);
     this.matchStarted.emit();
@@ -237,5 +328,10 @@ export class SetupComponent implements OnInit {
     const n = parseInt(val.replace(/\D/g, ''), 10);
     if (!Number.isFinite(n)) return fallback;
     return Math.min(max, Math.max(min, n));
+  }
+
+  private async toast(message: string): Promise<void> {
+    const t = await this.toastController.create({ message, duration: 2500, position: 'bottom' });
+    await t.present();
   }
 }
