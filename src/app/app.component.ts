@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, afterNextRender, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+import { AppUpdateService } from './services/app-update.service';
 
 @Component({
   selector: 'app-root',
@@ -12,4 +13,10 @@ import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
   `,
   styles: []
 })
-export class AppComponent {}
+export class AppComponent {
+  private readonly appUpdate = inject(AppUpdateService);
+
+  constructor() {
+    afterNextRender(() => void this.appUpdate.init());
+  }
+}

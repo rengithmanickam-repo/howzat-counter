@@ -6,6 +6,8 @@ android/
 .DS_Store
 *.swp
 
-# iOS - track the native project, ignore generated content
+# Generated App Store screenshot exports (regenerate locally from Documents captures)
+app-store-screenshots/
+
 ios/App/App/public/
 ios/App/Pods/
