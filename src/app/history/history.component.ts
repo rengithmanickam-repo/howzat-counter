@@ -198,7 +198,8 @@ export class HistoryComponent implements OnInit {
   readonly state = inject(UmpireStateService);
   private readonly toastController = inject(ToastController);
 
-  readonly allOvers = computed(() => this.state.historyOversChronological());
+  /** History tab: logged overs, most recent first. */
+  readonly allOvers = computed(() => [...this.state.historyOversChronological()].reverse());
   readonly derived = computed(() => this.state.derived());
   readonly scoreTotals = computed(() => this.state.scoreTotals());
 
