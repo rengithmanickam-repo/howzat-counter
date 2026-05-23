@@ -1,5 +1,7 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import {
   IonContent,
   IonHeader,
@@ -97,7 +99,7 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
         <div class="section-card section-card--info">
           <h2 class="section-title">About</h2>
           <ion-note class="section-hint">
-            Howzat - Counter v1.1.0 (2)<br>
+            Howzat - Counter v{{ appVersion() }}<br>
             Cricket umpire scoring counter.
           </ion-note>
         </div>
@@ -186,9 +188,20 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
 })
 export class SettingsComponent implements OnInit {
   readonly state = inject(UmpireStateService);
+  readonly appVersion = signal('1.2.0');
 
   ngOnInit(): void {
     this.state.ensureLoaded();
+    void this.loadAppVersion();
+  }
+
+  private async loadAppVersion(): Promise<void> {
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const info = await App.getInfo();
+        this.appVersion.set(`${info.version} (${info.build})`);
+      }
+    } catch { /* keep package fallback */ }
   }
 
   onToggle(key: 'showWide' | 'showNoBall' | 'showLb' | 'showBye', ev: Event): void {
