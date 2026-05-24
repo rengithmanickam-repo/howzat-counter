@@ -4,6 +4,7 @@
 @import '@ionic/core/css/structure.css';
 @import '@ionic/core/css/typography.css';
 @import '@ionic/core/css/utils.bundle.css';
+@import '@ionic/angular/css/palettes/dark.class.css';
 
 /* Global Styles */
 *,
@@ -17,6 +18,11 @@
 html {
   height: 100%;
   touch-action: manipulation;
+  color-scheme: light;
+}
+
+html.theme-light {
+  color-scheme: light;
 }
 
 body {
@@ -132,9 +138,15 @@ body {
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
+  --app-surface-muted: #f1f5f9;
+  --app-ball-bg: #f8fafc;
+  --app-shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --app-chase-accent: #b45309;
+
   /* Safe areas for notch / status bar and iOS home indicator (viewport-fit=cover) */
   --app-safe-top: max(env(safe-area-inset-top, 0px), 12px);
   --app-safe-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+  --app-toolbar-content-height: 56px;
 }
 
 /* Enhanced Typography */
@@ -163,6 +175,16 @@ ion-item,
 }
 
 @import './styles/over-strip.scss';
+
+/* Shared elevated surfaces (history overs, scoring strip, settings cards) */
+.section-card,
+.overs-list.over-strip,
+.current-over-section.over-strip {
+  background: var(--ion-card-background);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--app-shadow-card);
+}
 
 /* Enhanced Card Styles */
 ion-card {
@@ -244,7 +266,8 @@ ion-tab-bar {
 /* Screens with a toolbar header */
 ion-header ion-toolbar {
   --padding-top: var(--app-safe-top);
-  --min-height: calc(56px + var(--app-safe-top));
+  --padding-end: 52px;
+  --min-height: calc(var(--app-toolbar-content-height, 56px) + var(--app-safe-top));
 }
 
 /* Extra scroll padding above tab bar / home indicator */
@@ -255,31 +278,133 @@ ion-content.app-safe-content {
 .umpire-toast {
   --background: var(--ion-color-dark, #222428);
   --color: #fff;
+  --border-radius: 12px;
+  --box-shadow: var(--shadow-md);
   font-weight: 600;
+  text-align: center;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ion-background-color: #121212;
-    --ion-background-color-rgb: 18, 18, 18;
-    --ion-text-color: #f4f4f5;
-    --ion-text-color-rgb: 244, 244, 245;
-    --ion-border-color: #2d2d30;
-    --ion-card-background: #1e1e1e;
-    --ion-toolbar-background: #1a1a1a;
-    --ion-item-background: #1e1e1e;
-    --ion-item-border-color: #2d2d30;
-    --border-color: #2d2d30;
-    --bg-light: #1a1a1a;
-  }
+.umpire-toast--score {
+  --top: calc(var(--app-safe-top, env(safe-area-inset-top, 12px)) + 56px);
+  --start: 24px;
+  --end: 64px;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  transform: translateY(0);
+  animation: umpire-score-toast-in 0.22s ease-out;
+}
 
-  .current-over-section.over-strip,
-  .overs-list.over-strip,
-  .section-card {
-    background: var(--ion-card-background, #1e1e1e);
+@keyframes umpire-score-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-  .over-strip .over-ball-box {
-    background: #2a2a2e;
-  }
+html.theme-dark {
+  --ion-background-color: #0f0f10;
+  --ion-background-color-rgb: 15, 15, 16;
+  --ion-text-color: #f4f4f5;
+  --ion-text-color-rgb: 244, 244, 245;
+  --ion-border-color: #3a3a3e;
+  --ion-card-background: #1c1c1f;
+  --ion-toolbar-background: #161618;
+  --ion-toolbar-border-color: #3a3a3e;
+  --ion-item-background: #1c1c1f;
+  --ion-item-border-color: #3a3a3e;
+  --border-color: #3a3a3e;
+  --bg-light: #161618;
+
+  --ion-color-medium-shade: #a1a1aa;
+  --ion-color-primary: #5b9cff;
+  --ion-color-primary-rgb: 91, 156, 255;
+  --ion-color-primary-shade: #6ea8ff;
+  --ion-color-primary-tint: #7ab5ff;
+
+  --app-surface-muted: #252528;
+  --app-ball-bg: #2a2a2e;
+  --app-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --app-chase-accent: #fbbf24;
+
+  --ion-text-color-step-600: #a1a1aa;
+  --ion-text-color-step-550: #b4b4bc;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+html.theme-dark ion-tab-bar {
+  --background: var(--ion-toolbar-background);
+  border-top: 1px solid var(--border-color);
+}
+
+html.theme-dark ion-header ion-toolbar {
+  --background: var(--ion-toolbar-background);
+  --color: var(--ion-text-color);
+  --border-color: var(--border-color);
+}
+
+html.theme-dark ion-list {
+  background: transparent;
+}
+
+html.theme-dark ion-item {
+  --background: transparent;
+  --border-color: var(--border-color);
+  --color: var(--ion-text-color);
+}
+
+html.theme-dark ion-toggle {
+  --track-background: #3a3a3e;
+  --track-background-checked: rgba(var(--ion-color-primary-rgb), 0.35);
+}
+
+html.theme-dark ion-segment {
+  --background: var(--app-surface-muted);
+}
+
+html.theme-dark ion-segment-button {
+  --color: var(--ion-color-medium-shade);
+  --color-checked: var(--ion-text-color);
+  --indicator-color: var(--ion-card-background);
+}
+
+html.theme-dark ion-button[fill="outline"] {
+  --border-color: var(--border-color);
+  --color: var(--ion-color-primary-shade);
+}
+
+html.theme-dark .over-strip .over-ball-box.extras {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fde68a;
+  border-color: #d97706;
+}
+
+html.theme-dark .over-strip .over-current-pill {
+  background: rgba(var(--ion-color-primary-rgb), 0.2);
+  color: var(--ion-color-primary-shade);
+}
+
+html.theme-dark .section-card--info,
+html.theme-dark .section-card--muted {
+  background: var(--app-surface-muted) !important;
+}
+
+/* Ionic overlays: match app dark theme (fixes white alert + light text) */
+html.theme-dark ion-alert,
+html.theme-dark ion-action-sheet,
+html.theme-dark ion-loading,
+html.theme-dark ion-popover {
+  --background: var(--ion-card-background);
+  --color: var(--ion-text-color);
+}
+
+html.theme-dark ion-alert {
+  --backdrop-opacity: 0.55;
 }

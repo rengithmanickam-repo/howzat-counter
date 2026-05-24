@@ -9,13 +9,15 @@ import {
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { helpCircleOutline, homeOutline, listOutline, settingsOutline } from 'ionicons/icons';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-tabs',
   standalone: true,
-  imports: [IonTabs, IonRouterOutlet, IonTabBar, IonTabButton, IonIcon, IonLabel],
+  imports: [IonTabs, IonRouterOutlet, IonTabBar, IonTabButton, IonIcon, IonLabel, ThemeToggleComponent],
   template: `
     <ion-tabs>
+      <app-theme-toggle />
       <ion-router-outlet></ion-router-outlet>
       <ion-tab-bar slot="bottom">
         <ion-tab-button tab="home">
@@ -39,7 +41,7 @@ import { helpCircleOutline, homeOutline, listOutline, settingsOutline } from 'io
   `,
   styles: [`
     ion-tab-bar {
-      --border: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.06));
+      --border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
       padding-bottom: var(--app-safe-bottom, env(safe-area-inset-bottom, 12px));
     }
 

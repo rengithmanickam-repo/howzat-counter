@@ -177,10 +177,6 @@ import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
     }
 
     .section-card {
-      background: #ffffff;
-      border-radius: 12px;
-      border: 1px solid var(--border-color, #e2e8f0);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       padding: 16px;
     }
 

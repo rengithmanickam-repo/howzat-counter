@@ -119,15 +119,11 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
     }
 
     .section-card {
-      background: #ffffff;
-      border-radius: 12px;
-      border: 1px solid var(--border-color, #e2e8f0);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       padding: 16px;
     }
 
     .section-card--info {
-      background: var(--ion-background-color, #f4f5f8);
+      background: var(--app-surface-muted, var(--ion-background-color));
     }
 
     .section-title {

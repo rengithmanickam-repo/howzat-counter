@@ -148,7 +148,7 @@
   font-size: clamp(8px, 2.1vmin, 12px);
   font-weight: 700;
   color: var(--ion-text-color);
-  background: #f8fafc;
+  background: var(--app-ball-bg, #f8fafc);
   line-height: 1;
   box-sizing: border-box;
   white-space: nowrap;
@@ -195,5 +195,5 @@
   height: 1px;
   min-height: 1px;
   margin: 6px 10px;
-  background: #e2e8f0;
+  background: var(--border-color, #e2e8f0);
 }

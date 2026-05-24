@@ -457,7 +457,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         padding: clamp(4px, 1vh, 8px) clamp(6px, 2vw, 10px)
           calc(6px + var(--app-safe-bottom, max(env(safe-area-inset-bottom, 0px), 12px)));
         background: var(--ion-background-color, #f4f5f8);
-        border-top: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.06));
+        border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
         box-sizing: border-box;
       }
 
@@ -484,7 +484,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         background: var(--ion-card-background, #fff);
         border-radius: 16px;
         margin-bottom: 10px;
-        box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
+        box-shadow: var(--app-shadow-card);
       }
 
       .summary-card--mega {
@@ -627,7 +627,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         font-size: clamp(0.85rem, 2.5vh, 1rem);
         font-weight: 800;
         font-variant-numeric: tabular-nums;
-        color: #b45309;
+        color: var(--app-chase-accent, #b45309);
       }
 
       .chase-line-target {
@@ -698,10 +698,6 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         display: flex;
         flex-direction: column;
         padding: 10px 6px 10px;
-        background: #ffffff;
-        border-radius: 12px;
-        border: 1px solid var(--border-color, #e2e8f0);
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
         box-sizing: border-box;
       }
 
@@ -820,7 +816,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
       }
 
       .match-complete-banner--chase .match-complete-text {
-        color: #b45309;
+        color: var(--app-chase-accent, #b45309);
       }
 
       @media (max-height: 700px) {
@@ -1186,7 +1182,17 @@ export class UmpireCounterComponent implements OnInit {
       this.scoreFlash.set(null);
       this.flashClearId = null;
     }, 450);
-    void this.toast(message, 900);
+    void this.scoreToast(message, 900);
+  }
+
+  private async scoreToast(message: string, duration = 900): Promise<void> {
+    const t = await this.toastController.create({
+      message,
+      duration,
+      position: 'top',
+      cssClass: 'umpire-toast umpire-toast--score'
+    });
+    await t.present();
   }
 
   private async toast(message: string, duration = 2000): Promise<void> {

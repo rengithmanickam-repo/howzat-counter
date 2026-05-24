@@ -1,18 +1,12 @@
-import {
-  Component,
-  ElementRef,
-  afterNextRender,
-  viewChildren
-} from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { IonContent, IonHeader, IonToolbar, IonTitle, IonNote } from '@ionic/angular/standalone';
-import { ViewWillEnter } from '@ionic/angular';
-import { HELP_DIAGRAMS } from './help-diagrams';
+import { HELP_GUIDES } from './help-guides';
+import { HelpVisualGuideComponent } from './help-visual-guide.component';
 
 @Component({
   selector: 'app-help',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonNote],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonNote, HelpVisualGuideComponent],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -22,25 +16,19 @@ import { HELP_DIAGRAMS } from './help-diagrams';
     <ion-content [fullscreen]="false" class="help-ion-content app-safe-content">
       <div class="help-page">
         <p class="help-intro">
-          Howzat Counter helps you score a limited-overs innings ball by ball from the umpire’s view.
+          Howzat - Counter helps you score a limited-overs innings ball by ball from the umpire’s view.
         </p>
 
-        <section class="section-card section-card--diagrams">
+        <section class="section-card section-card--guides">
           <h2 class="section-title">Visual guides</h2>
-          <p class="help-text">Scroll sideways on wide diagrams if needed.</p>
-          @for (d of diagrams; track d.id) {
-            <div class="diagram-block">
-              <h3 class="diagram-title">{{ d.title }}</h3>
-              @if (d.caption) {
-                <p class="diagram-caption">{{ d.caption }}</p>
+          <p class="help-text">Quick flows — scroll sideways on tab rows if needed.</p>
+          @for (g of guides; track g.id) {
+            <div class="guide-block">
+              <h3 class="guide-title">{{ g.title }}</h3>
+              @if (g.caption) {
+                <p class="guide-caption">{{ g.caption }}</p>
               }
-              <div
-                #diagramHost
-                class="diagram-host"
-                [attr.data-diagram-id]="d.id"
-                [attr.aria-label]="d.title + ' diagram'"
-                role="img"
-              ></div>
+              <app-help-visual-guide [guide]="g" />
             </div>
           }
         </section>
@@ -64,9 +52,9 @@ import { HELP_DIAGRAMS } from './help-diagrams';
           <ul class="help-list">
             <li><strong>0–6</strong> — runs off the bat on a legal delivery.</li>
             <li><strong>W</strong> — wicket. If runs were completed before dismissal (e.g. run out), tap runs then confirm; otherwise use <strong>Done (+0)</strong>.</li>
-            <li><strong>WD</strong> — wide. Tap extra runs off the wide (0–6), or <strong>Done (+0)</strong> for wide only.</li>
+            <li><strong>WD</strong> — wide. Tap extra runs off the wide (0–6), <strong>W</strong> for a wicket on the same delivery (e.g. run out), or <strong>Done (+0)</strong> for wide only.</li>
             <li><strong>NB</strong> — no-ball. Same flow as wide.</li>
-            <li><strong>Lb</strong> / <strong>Bye</strong> — leg-bye or bye (if enabled in setup).</li>
+            <li><strong>Lb</strong> / <strong>Bye</strong> — leg-bye or bye (if enabled). Tap <strong>1–4</strong> for multiple runs, or <strong>Done (+1)</strong> for a single.</li>
           </ul>
           <ion-note class="section-hint">
             Extras line shows delivery counts, e.g. Extras: 2 (1WD,1NB). RR is current run rate when an over limit is set.
@@ -92,7 +80,9 @@ import { HELP_DIAGRAMS } from './help-diagrams';
         <section class="section-card">
           <h2 class="section-title">5. History &amp; share</h2>
           <p class="help-text">
-            The <strong>History</strong> tab lists every over. Use <strong>Share scorecard</strong> to copy or share a text summary.
+            The <strong>History</strong> tab lists every over — <strong>most recent at the top</strong>. You’ll see the
+            running score, extras, and run rate. Use <strong>Share scorecard</strong> to copy or share a full text summary
+            (overs listed in bowling order).
           </p>
         </section>
 
@@ -101,17 +91,20 @@ import { HELP_DIAGRAMS } from './help-diagrams';
           <ul class="help-list">
             <li><strong>Undo</strong> — remove the last logged ball (or cancel a pending wide/no-ball/wicket).</li>
             <li><strong>Redo</strong> — restore the last undone ball.</li>
-            <li><strong>Reset</strong> (↻) — clear the match and return to the start screen.</li>
-            <li><strong>Settings</strong> — haptic feedback, wicket sound, and extra button visibility during a match.</li>
+            <li><strong>Reset</strong> (↻) — clear the match and return to the start screen (confirmation shown).</li>
+            <li><strong>Settings</strong> — haptic feedback, wicket sound, extra button visibility, and current match details while scoring.</li>
+            <li><strong>Theme</strong> — tap the <strong>sun/moon</strong> icon (top right on every screen) to switch light and dark mode.</li>
           </ul>
         </section>
 
         <section class="section-card section-card--muted">
           <h2 class="section-title">Tips</h2>
           <ul class="help-list">
-            <li>Match limits are fixed at setup; reset the match to change them.</li>
+            <li>Match limits are fixed at setup; reset the match to change them. Extras visibility can be changed anytime in Settings.</li>
             <li>Four and six show a brief flash and toast; wickets can play a sound (enable in Settings).</li>
+            <li>When all overs are bowled, all wickets have fallen, or a chase target is reached, the keypad locks until you undo the last ball.</li>
             <li>On small screens, scroll the middle area if the over strip is long — the keypad stays fixed at the bottom.</li>
+            <li>On iPhone/iPad, the app may offer an update when a new version is on the App Store.</li>
           </ul>
         </section>
       </div>
@@ -137,19 +130,15 @@ import { HELP_DIAGRAMS } from './help-diagrams';
     }
 
     .section-card {
-      background: #ffffff;
-      border-radius: 12px;
-      border: 1px solid var(--border-color, #e2e8f0);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       padding: 16px;
     }
 
-    .section-card--diagrams {
+    .section-card--guides {
       padding-bottom: 12px;
     }
 
     .section-card--muted {
-      background: var(--ion-background-color, #f4f5f8);
+      background: var(--app-surface-muted, var(--ion-background-color));
     }
 
     .section-title {
@@ -159,54 +148,30 @@ import { HELP_DIAGRAMS } from './help-diagrams';
       color: var(--ion-text-color);
     }
 
-    .diagram-block {
+    .guide-block {
       margin-top: 14px;
       padding-top: 14px;
       border-top: 1px solid var(--border-color, #e2e8f0);
     }
 
-    .diagram-block:first-of-type {
+    .guide-block:first-of-type {
       margin-top: 10px;
       padding-top: 0;
       border-top: none;
     }
 
-    .diagram-title {
+    .guide-title {
       font-size: 0.9rem;
       font-weight: 700;
       margin: 0 0 4px;
       color: var(--ion-color-primary-shade, #4854e0);
     }
 
-    .diagram-caption {
-      margin: 0 0 8px;
+    .guide-caption {
+      margin: 0 0 10px;
       font-size: 0.78rem;
       line-height: 1.4;
       color: var(--ion-color-medium-shade, #5f6368);
-    }
-
-    .diagram-host {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      border-radius: 8px;
-      background: #f8fafc;
-      padding: 8px 4px;
-      min-height: 48px;
-    }
-
-    .diagram-host ::ng-deep svg {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      margin: 0 auto;
-    }
-
-    .diagram-fallback {
-      margin: 0;
-      padding: 8px;
-      font-size: 0.8rem;
-      color: var(--ion-color-medium-shade, #5f6368);
-      text-align: center;
     }
 
     .help-text {
@@ -237,58 +202,6 @@ import { HELP_DIAGRAMS } from './help-diagrams';
     }
   `]
 })
-export class HelpComponent implements ViewWillEnter {
-  readonly diagrams = HELP_DIAGRAMS;
-
-  private readonly diagramHosts = viewChildren<ElementRef<HTMLElement>>('diagramHost');
-  private mermaidReady = false;
-  private renderGen = 0;
-
-  constructor() {
-    afterNextRender(() => void this.renderDiagrams());
-  }
-
-  ionViewWillEnter(): void {
-    void this.renderDiagrams();
-  }
-
-  private async renderDiagrams(): Promise<void> {
-    const hosts = this.diagramHosts();
-    if (hosts.length === 0) return;
-
-    const gen = ++this.renderGen;
-
-    try {
-      const mermaid = (await import('mermaid')).default;
-      if (!this.mermaidReady) {
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: 'neutral',
-          securityLevel: 'strict',
-          flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
-        });
-        this.mermaidReady = true;
-      }
-
-      for (const hostRef of hosts) {
-        if (gen !== this.renderGen) return;
-
-        const el = hostRef.nativeElement;
-        const id = el.dataset['diagramId'];
-        const def = HELP_DIAGRAMS.find(d => d.id === id);
-        if (!def) continue;
-
-        el.innerHTML = '';
-        const renderId = `help-mmd-${def.id}-${gen}`;
-        const { svg } = await mermaid.render(renderId, def.source);
-        if (gen !== this.renderGen) return;
-        el.innerHTML = svg;
-      }
-    } catch {
-      for (const hostRef of hosts) {
-        hostRef.nativeElement.innerHTML =
-          '<p class="diagram-fallback">Diagram could not be loaded. See the text sections below.</p>';
-      }
-    }
-  }
+export class HelpComponent {
+  readonly guides = HELP_GUIDES;
 }

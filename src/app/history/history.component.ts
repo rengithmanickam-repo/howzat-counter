@@ -175,7 +175,7 @@ import {
       text-align: center;
       font-size: 0.88rem;
       font-weight: 700;
-      color: #b45309;
+      color: var(--app-chase-accent, #b45309);
       margin: -4px 0 12px;
       line-height: 1.4;
     }
@@ -186,10 +186,6 @@ import {
     }
 
     .overs-list {
-      background: #ffffff;
-      border-radius: 12px;
-      border: 1px solid var(--border-color, #e2e8f0);
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       padding: 10px 6px;
     }
   `]
