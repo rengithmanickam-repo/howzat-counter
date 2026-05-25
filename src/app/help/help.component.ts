@@ -1,16 +1,20 @@
 import { Component } from '@angular/core';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonNote } from '@ionic/angular/standalone';
+import { IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButtons } from '@ionic/angular/standalone';
 import { HELP_GUIDES } from './help-guides';
 import { HelpVisualGuideComponent } from './help-visual-guide.component';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-help',
   standalone: true,
-  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonNote, HelpVisualGuideComponent],
+  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButtons, HelpVisualGuideComponent, ThemeToggleComponent],
   template: `
     <ion-header>
       <ion-toolbar>
         <ion-title>How to use</ion-title>
+        <ion-buttons slot="end">
+          <app-theme-toggle />
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content [fullscreen]="false" class="help-ion-content app-safe-content">
@@ -91,8 +95,8 @@ import { HelpVisualGuideComponent } from './help-visual-guide.component';
           <ul class="help-list">
             <li><strong>Undo</strong> — remove the last logged ball (or cancel a pending wide/no-ball/wicket).</li>
             <li><strong>Redo</strong> — restore the last undone ball.</li>
-            <li><strong>Reset</strong> (↻) — clear the match and return to the start screen (confirmation shown).</li>
-            <li><strong>Settings</strong> — haptic feedback, wicket sound, extra button visibility, and current match details while scoring.</li>
+            <li><strong>Reset</strong> — clear the match and return to the start screen (confirmation shown).</li>
+            <li><strong>Settings</strong> — haptic feedback, wicket sound, four/six/wicket toasts, extra button visibility, and current match details while scoring.</li>
             <li><strong>Theme</strong> — tap the <strong>sun/moon</strong> icon (top right on every screen) to switch light and dark mode.</li>
           </ul>
         </section>
@@ -101,7 +105,7 @@ import { HelpVisualGuideComponent } from './help-visual-guide.component';
           <h2 class="section-title">Tips</h2>
           <ul class="help-list">
             <li>Match limits are fixed at setup; reset the match to change them. Extras visibility can be changed anytime in Settings.</li>
-            <li>Four and six show a brief flash and toast; wickets can play a sound (enable in Settings).</li>
+            <li>Four and six show a brief score flash; optional toast and sound on wicket (Settings → Feedback).</li>
             <li>When all overs are bowled, all wickets have fallen, or a chase target is reached, the keypad locks until you undo the last ball.</li>
             <li>On small screens, scroll the middle area if the over strip is long — the keypad stays fixed at the bottom.</li>
             <li>On iPhone/iPad, the app may offer an update when a new version is on the App Store.</li>

@@ -10,21 +10,26 @@ import {
   IonItem,
   IonToggle,
   IonList,
-  IonNote
+  IonNote,
+  IonButtons
 } from '@ionic/angular/standalone';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   imports: [
     CommonModule, IonContent, IonHeader, IonToolbar, IonTitle,
-    IonItem, IonToggle, IonList, IonNote
+    IonItem, IonToggle, IonList, IonNote, IonButtons, ThemeToggleComponent
   ],
   template: `
     <ion-header>
       <ion-toolbar>
         <ion-title>Settings</ion-title>
+        <ion-buttons slot="end">
+          <app-theme-toggle />
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content [fullscreen]="false" class="settings-ion-content app-safe-content">
@@ -38,6 +43,11 @@ import { UmpireStateService } from '../umpire-counter/umpire-state.service';
             <ion-item>
               <ion-toggle [checked]="state.wicketSoundEnabled()" (ionChange)="onWicketSound($event)">
                 Sound on wicket
+              </ion-toggle>
+            </ion-item>
+            <ion-item>
+              <ion-toggle [checked]="state.scoreToastEnabled()" (ionChange)="onScoreToast($event)">
+                Toast on four, six &amp; wicket
               </ion-toggle>
             </ion-item>
           </ion-list>
@@ -213,5 +223,10 @@ export class SettingsComponent implements OnInit {
   onWicketSound(ev: Event): void {
     const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
     this.state.setWicketSoundEnabled(!!checked);
+  }
+
+  onScoreToast(ev: Event): void {
+    const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
+    this.state.setScoreToastEnabled(!!checked);
   }
 }

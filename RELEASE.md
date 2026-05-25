@@ -1,19 +1,25 @@
 # Release checklist — Howzat Counter
 
-## Version 1.2.0 (build 3)
+## Version 1.3.0 (build 4)
 
 ### What’s new
-- In-app update prompts when a newer App Store version is available
-- History tab shows most recent overs at the top
+- Dark mode with manual theme toggle on all screens
+- Help tab with step-by-step visual guides (no external diagrams)
+- Score toasts for 4, 6 & wicket (top of screen; optional in Settings)
+- History overs list full width; most recent overs first
+- Status bar follows light/dark theme on iOS
+- Reset match uses native action sheet
+- Preferences stored via Capacitor (migrated from WebView storage)
+- iPhone locked to portrait; privacy manifest for App Store
 
 ### Version sync (keep aligned)
 
 | Location | Value |
 |----------|--------|
-| `package.json` | `1.2.0` |
-| Xcode **Marketing Version** | `1.2` |
-| Xcode **Build** (`CURRENT_PROJECT_VERSION`) | `3` |
-| `latest-version.json` | `"1.2.0"` |
+| `package.json` | `1.3.0` |
+| Xcode **Marketing Version** | `1.3` |
+| Xcode **Build** (`CURRENT_PROJECT_VERSION`) | `4` |
+| `latest-version.json` | `"1.3.0"` |
 
 ### Build & deploy (iOS)
 
@@ -25,21 +31,23 @@ npm run cap:open:ios
 ```
 
 In Xcode:
-1. Confirm **Marketing Version** = `1.2`, **Build** = `3`
+1. Confirm **Marketing Version** = `1.3`, **Build** = `4`
 2. **Product → Archive**
 3. **Distribute App** → App Store Connect
 4. In App Store Connect → **What's New**:
 
 ```
-• History tab now shows your most recent overs at the top
-• Optional update prompt when a new version is on the App Store
-• Stability improvements
+• Dark mode and theme toggle — match your device or choose light/dark
+• Redesigned Help with clear step-by-step guides
+• Optional score toasts for fours, sixes and wickets
+• History and Live Scoring layout improvements
+• Faster, more reliable saved settings on iOS
 ```
 
-5. After release, ensure `latest-version.json` on `main` is `"1.2.0"` (already bumped in this release)
+5. After release, ensure `latest-version.json` on `main` is `"1.3.0"`
 
 ### App Store Connect
 
 - **Bundle ID:** `com.howzat.counter`
-- Answer **Export Compliance:** No custom encryption
+- Answer **Export Compliance:** No custom encryption (`ITSAppUsesNonExemptEncryption` = NO)
 - **Build number** must increase for every upload

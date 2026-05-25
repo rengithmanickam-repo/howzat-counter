@@ -1,8 +1,9 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, ToastController } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButtons, ToastController } from '@ionic/angular/standalone';
 import { Capacitor } from '@capacitor/core';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 import {
   deriveScoreTotals,
   formatOrdinalOver,
@@ -14,11 +15,14 @@ import {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButton],
+  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButton, IonButtons, ThemeToggleComponent],
   template: `
     <ion-header>
       <ion-toolbar>
         <ion-title>History</ion-title>
+        <ion-buttons slot="end">
+          <app-theme-toggle />
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content [fullscreen]="false" class="history-ion-content app-safe-content">
@@ -106,6 +110,9 @@ import {
   styles: [`
     .history-ion-content {
       --background: var(--ion-background-color, #f4f5f8);
+      --padding-start: 0;
+      --padding-end: 0;
+      --padding-top: 0;
     }
 
     .history-page {
@@ -186,7 +193,20 @@ import {
     }
 
     .overs-list {
-      padding: 10px 6px;
+      margin-left: -14px;
+      margin-right: -14px;
+      width: calc(100% + 28px);
+      max-width: 100vw;
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      box-shadow: none;
+      padding: 10px 8px;
+    }
+
+    .overs-list .over-separator {
+      margin-left: 8px;
+      margin-right: 8px;
     }
   `]
 })

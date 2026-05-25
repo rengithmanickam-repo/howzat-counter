@@ -1,5 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { applyThemeToDocument } from './theme-init';
+import { PreferencesStorageService } from './preferences-storage.service';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type EffectiveTheme = 'light' | 'dark';
@@ -11,13 +14,14 @@ export class ThemeService {
   readonly preference = signal<ThemePreference>('system');
   readonly effectiveTheme = signal<EffectiveTheme>('light');
 
+  private readonly storage = inject(PreferencesStorageService);
   private mediaQuery: MediaQueryList | null = null;
   private onSystemChange: ((ev: MediaQueryListEvent) => void) | null = null;
 
   init(): void {
     if (typeof window === 'undefined') return;
 
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    const saved = this.storage.getItem(THEME_STORAGE_KEY);
     if (saved === 'light' || saved === 'dark' || saved === 'system') {
       this.preference.set(saved);
     }
@@ -30,9 +34,7 @@ export class ThemeService {
 
   setPreference(pref: ThemePreference): void {
     this.preference.set(pref);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, pref);
-    } catch { /* ignore */ }
+    this.storage.setItem(THEME_STORAGE_KEY, pref);
     this.apply();
   }
 
@@ -52,5 +54,12 @@ export class ThemeService {
     const effective = this.resolveEffective();
     this.effectiveTheme.set(effective);
     applyThemeToDocument(effective);
+    this.syncStatusBar(effective);
+  }
+
+  private syncStatusBar(effective: EffectiveTheme): void {
+    if (!Capacitor.isNativePlatform()) return;
+    const style = effective === 'dark' ? Style.Dark : Style.Light;
+    void StatusBar.setStyle({ style }).catch(() => { /* ignore */ });
   }
 }

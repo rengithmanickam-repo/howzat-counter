@@ -11,12 +11,14 @@ import {
 } from '@ionic/angular/standalone';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
 import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-setup',
   standalone: true,
-  imports: [CommonModule, IonButton, IonContent, IonItem, IonToggle, IonList, IonInput],
+  imports: [CommonModule, IonButton, IonContent, IonItem, IonToggle, IonList, IonInput, ThemeToggleComponent],
   template: `
+    <app-theme-toggle overlay />
     <ion-content [fullscreen]="false" class="setup-ion-content app-safe-content">
       <div class="setup-page">
         <h1 class="setup-title">Match Setup</h1>

@@ -1,11 +1,13 @@
 import { Component, output } from '@angular/core';
 import { IonButton, IonContent } from '@ionic/angular/standalone';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-start',
   standalone: true,
-  imports: [IonButton, IonContent],
+  imports: [IonButton, IonContent, ThemeToggleComponent],
   template: `
+    <app-theme-toggle overlay />
     <ion-content [fullscreen]="false" class="start-ion-content app-safe-content">
       <div class="start-page">
         <div class="brand-area">

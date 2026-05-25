@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   UMPIRE_STORAGE_V1,
   UMPIRE_STORAGE_V2,
@@ -26,6 +26,7 @@ import {
   isBetweenOversPause,
   newEventId
 } from './umpire-counter-logic';
+import { PreferencesStorageService } from '../services/preferences-storage.service';
 
 const LIMIT_DEFAULTS = { ballsPerOver: 6, maxWickets: 11, maxOvers: 0 };
 const OVERS_HARD_CAP = 999;
@@ -87,6 +88,8 @@ function sanitizeEvents(raw: unknown): UmpireEvent[] {
 
 @Injectable({ providedIn: 'root' })
 export class UmpireStateService {
+  private readonly storage = inject(PreferencesStorageService);
+
   readonly ballsPerOver = signal(LIMIT_DEFAULTS.ballsPerOver);
   readonly maxWickets = signal(LIMIT_DEFAULTS.maxWickets);
   readonly maxOvers = signal(LIMIT_DEFAULTS.maxOvers);
@@ -103,6 +106,7 @@ export class UmpireStateService {
 
   readonly hapticEnabled = signal(true);
   readonly wicketSoundEnabled = signal(false);
+  readonly scoreToastEnabled = signal(true);
 
   /** Bumped when setup form should reload defaults (e.g. after match reset). */
   readonly setupDefaultsRevision = signal(0);
@@ -193,31 +197,35 @@ export class UmpireStateService {
   }
 
   loadAppPrefs(): UmpireAppPrefs {
-    const defaults: UmpireAppPrefs = { hapticEnabled: true, wicketSoundEnabled: false };
+    const defaults: UmpireAppPrefs = { hapticEnabled: true, wicketSoundEnabled: false, scoreToastEnabled: true };
     try {
-      const raw = localStorage.getItem(UMPIRE_APP_PREFS);
+      const raw = this.storage.getItem(UMPIRE_APP_PREFS);
       if (raw) {
         const p = JSON.parse(raw) as Partial<UmpireAppPrefs>;
         this.hapticEnabled.set(p.hapticEnabled !== false);
         this.wicketSoundEnabled.set(!!p.wicketSoundEnabled);
+        this.scoreToastEnabled.set(p.scoreToastEnabled !== false);
         return {
           hapticEnabled: p.hapticEnabled !== false,
-          wicketSoundEnabled: !!p.wicketSoundEnabled
+          wicketSoundEnabled: !!p.wicketSoundEnabled,
+          scoreToastEnabled: p.scoreToastEnabled !== false
         };
       }
     } catch { /* ignore */ }
     this.hapticEnabled.set(defaults.hapticEnabled);
     this.wicketSoundEnabled.set(defaults.wicketSoundEnabled);
+    this.scoreToastEnabled.set(defaults.scoreToastEnabled);
     return defaults;
   }
 
   saveAppPrefs(): void {
     const payload: UmpireAppPrefs = {
       hapticEnabled: this.hapticEnabled(),
-      wicketSoundEnabled: this.wicketSoundEnabled()
+      wicketSoundEnabled: this.wicketSoundEnabled(),
+      scoreToastEnabled: this.scoreToastEnabled()
     };
     try {
-      localStorage.setItem(UMPIRE_APP_PREFS, JSON.stringify(payload));
+      this.storage.setItem(UMPIRE_APP_PREFS, JSON.stringify(payload));
     } catch { /* ignore */ }
   }
 
@@ -228,6 +236,11 @@ export class UmpireStateService {
 
   setWicketSoundEnabled(on: boolean): void {
     this.wicketSoundEnabled.set(on);
+    this.saveAppPrefs();
+  }
+
+  setScoreToastEnabled(on: boolean): void {
+    this.scoreToastEnabled.set(on);
     this.saveAppPrefs();
   }
 
@@ -274,7 +287,7 @@ export class UmpireStateService {
 
   loadSetupDefaults(): UmpireSetupConfig {
     try {
-      const raw = localStorage.getItem(UMPIRE_SETUP_DEFAULTS);
+      const raw = this.storage.getItem(UMPIRE_SETUP_DEFAULTS);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<UmpireSetupConfig>;
         return {
@@ -298,7 +311,7 @@ export class UmpireStateService {
 
   private saveSetupDefaults(config: UmpireSetupConfig): void {
     try {
-      localStorage.setItem(UMPIRE_SETUP_DEFAULTS, JSON.stringify(config));
+      this.storage.setItem(UMPIRE_SETUP_DEFAULTS, JSON.stringify(config));
     } catch { /* ignore */ }
   }
 
@@ -343,14 +356,14 @@ export class UmpireStateService {
   /** Clear batting side, chase target, and toggle for a fresh match (Start or Reset). */
   clearChaseSetupDefaults(): void {
     try {
-      const raw = localStorage.getItem(UMPIRE_SETUP_DEFAULTS);
+      const raw = this.storage.getItem(UMPIRE_SETUP_DEFAULTS);
       if (raw) {
         const parsed = JSON.parse(raw) as Record<string, unknown>;
         delete parsed['battingSecond'];
         delete parsed['chaseTarget'];
         delete parsed['teamName'];
         parsed['battingSecond'] = false;
-        localStorage.setItem(UMPIRE_SETUP_DEFAULTS, JSON.stringify(parsed));
+        this.storage.setItem(UMPIRE_SETUP_DEFAULTS, JSON.stringify(parsed));
       }
     } catch { /* ignore */ }
     this.teamName.set('');
@@ -403,18 +416,18 @@ export class UmpireStateService {
       ...(this.chaseTarget() > 0 ? { chaseTarget: this.chaseTarget() } : {})
     };
     try {
-      localStorage.setItem(UMPIRE_STORAGE_V2, JSON.stringify(payload));
+      this.storage.setItem(UMPIRE_STORAGE_V2, JSON.stringify(payload));
     } catch { /* ignore */ }
   }
 
   private load(): void {
     try {
-      const rawV2 = localStorage.getItem(UMPIRE_STORAGE_V2);
+      const rawV2 = this.storage.getItem(UMPIRE_STORAGE_V2);
       if (rawV2) {
         this.applyV2Payload(JSON.parse(rawV2) as UmpireCounterV2Payload);
         return;
       }
-      const rawV1 = localStorage.getItem(UMPIRE_STORAGE_V1);
+      const rawV1 = this.storage.getItem(UMPIRE_STORAGE_V1);
       if (rawV1) {
         this.migrateFromV1(JSON.parse(rawV1) as UmpireCounterV1Payload);
         this.persist();

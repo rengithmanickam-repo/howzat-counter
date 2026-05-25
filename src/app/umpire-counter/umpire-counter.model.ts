@@ -67,6 +67,7 @@ export interface UmpireSetupConfig {
 export interface UmpireAppPrefs {
   hapticEnabled: boolean;
   wicketSoundEnabled: boolean;
+  scoreToastEnabled: boolean;
 }
 
 export const UMPIRE_APP_PREFS = 'umpireAppPrefs';

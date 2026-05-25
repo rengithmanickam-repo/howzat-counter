@@ -13,14 +13,18 @@ import {
 import { CommonModule } from '@angular/common';
 import {
   IonContent,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
   IonButton,
   IonIcon,
   IonNote,
-  AlertController,
+  ActionSheetController,
   ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { refreshOutline } from 'ionicons/icons';
+import { arrowRedoOutline, arrowUndoOutline } from 'ionicons/icons';
 import {
   chipLabel as umpireFormatChip,
   deriveScoreTotals,
@@ -34,6 +38,7 @@ import type { UmpireEvent } from './umpire-counter.model';
 import { UmpireStateService } from './umpire-state.service';
 import { HapticService } from '../services/haptic.service';
 import { WicketSoundService } from '../services/wicket-sound.service';
+import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-umpire-counter',
@@ -41,11 +46,24 @@ import { WicketSoundService } from '../services/wicket-sound.service';
   imports: [
     CommonModule,
     IonContent,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
     IonButton,
     IonIcon,
-    IonNote
+    IonNote,
+    ThemeToggleComponent
   ],
   template: `
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Live Scoring</ion-title>
+        <ion-buttons slot="end">
+          <app-theme-toggle />
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
     <ion-content [fullscreen]="false" class="umpire-ion-content">
       <div class="umpire-page">
         <div class="umpire-score-head">
@@ -327,23 +345,23 @@ import { WicketSoundService } from '../services/wicket-sound.service';
               fill="outline"
               expand="block"
               size="small"
-              class="meta-btn"
+              class="meta-btn meta-btn--icon"
               aria-label="Undo last ball"
               [disabled]="!canUndo()"
               (click)="undo()"
             >
-              Undo
+              <ion-icon name="arrow-undo-outline" slot="icon-only" />
             </ion-button>
             <ion-button
               fill="outline"
               expand="block"
               size="small"
-              class="meta-btn"
+              class="meta-btn meta-btn--icon"
               aria-label="Redo last undone ball"
               [disabled]="!state.canRedo()"
               (click)="state.redo()"
             >
-              Redo
+              <ion-icon name="arrow-redo-outline" slot="icon-only" />
             </ion-button>
             <ion-button
               fill="outline"
@@ -354,7 +372,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
               aria-label="Reset match"
               (click)="confirmReset()"
             >
-              <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+              Reset
             </ion-button>
             @if (pendingWicket() && !state.scoringLocked()) {
               <ion-button
@@ -391,16 +409,21 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         width: 100%;
         height: 100%;
         min-height: 0;
-        --umpire-keypad-offset: 220px;
+        --umpire-keypad-offset: 208px;
+      }
+
+      ion-header {
+        flex-shrink: 0;
       }
 
       .umpire-ion-content {
+        flex: 1 1 auto;
+        min-height: 0;
         --background: var(--ion-background-color, #f4f5f8);
-        --padding-top: var(--app-safe-top, max(env(safe-area-inset-top, 0px), 12px));
+        --padding-top: 0;
         --padding-start: 0;
         --padding-end: 0;
-        --padding-bottom: var(--umpire-keypad-offset, 220px);
-        height: 100%;
+        --padding-bottom: var(--umpire-keypad-offset, 208px);
       }
 
       .umpire-ion-content::part(scroll) {
@@ -422,7 +445,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
 
       .umpire-score-head {
         flex: 0 0 auto;
-        padding: 4px 14px 0;
+        padding: 2px 14px 0;
         box-sizing: border-box;
       }
 
@@ -433,6 +456,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         display: flex;
         flex-direction: column;
         align-items: stretch;
+        justify-content: flex-end;
         overflow-x: hidden;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
@@ -440,11 +464,13 @@ import { WicketSoundService } from '../services/wicket-sound.service';
 
       .umpire-pending-area {
         flex: 0 0 auto;
+        flex-shrink: 0;
       }
 
       .current-over-strip {
-        margin: 0 14px 10px;
+        margin: 0 14px 6px;
         box-sizing: border-box;
+        flex-shrink: 0;
       }
 
       .keypad-panel {
@@ -483,7 +509,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
       .summary-card {
         background: var(--ion-card-background, #fff);
         border-radius: 16px;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         box-shadow: var(--app-shadow-card);
       }
 
@@ -493,7 +519,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         width: calc(100% + 28px);
         max-width: none;
         border-radius: 0;
-        padding: clamp(8px, 2vh, 16px) 14px clamp(10px, 2.5vh, 18px);
+        padding: clamp(6px, 1.6vh, 14px) 14px clamp(8px, 2vh, 14px);
         box-sizing: border-box;
       }
 
@@ -508,7 +534,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         text-align: center;
         font-variant-numeric: tabular-nums;
         line-height: 1.05;
-        font-size: clamp(1.65rem, 5.5vh + 0.5rem, 5.25rem);
+        font-size: clamp(1.5rem, 4.8vh + 0.45rem, 4.75rem);
         font-weight: 800;
         letter-spacing: -0.04em;
         overflow: hidden;
@@ -673,8 +699,9 @@ import { WicketSoundService } from '../services/wicket-sound.service';
       }
 
       .between-over-hint {
-        padding: 0 14px 8px;
+        padding: 0 14px 6px;
         text-align: center;
+        flex-shrink: 0;
       }
 
       .between-over-hint ion-note {
@@ -780,18 +807,21 @@ import { WicketSoundService } from '../services/wicket-sound.service';
         --padding-bottom: 4px;
       }
 
+      .meta-btn--icon ion-icon {
+        font-size: 1.2rem;
+      }
+
       .meta-btn--reset {
         min-width: 0;
         max-width: none;
-      }
-
-      .meta-btn--reset ion-icon {
-        font-size: 1.15rem;
+        font-weight: 700;
+        font-size: 0.72rem;
+        letter-spacing: 0.01em;
       }
 
       .match-complete-banner {
-        padding: 14px 16px;
-        margin-bottom: 8px;
+        padding: 12px 14px;
+        margin-bottom: 6px;
         border-radius: 12px;
         background: rgba(var(--ion-color-success-rgb, 45, 211, 111), 0.12);
         border: 1px solid var(--ion-color-success-shade, #28ba62);
@@ -817,6 +847,54 @@ import { WicketSoundService } from '../services/wicket-sound.service';
 
       .match-complete-banner--chase .match-complete-text {
         color: var(--app-chase-accent, #b45309);
+      }
+
+      @media (max-height: 780px) {
+        :host {
+          --umpire-keypad-offset: 196px;
+        }
+
+        .summary-mega--single {
+          font-size: clamp(1.45rem, 4.2vh + 0.4rem, 3.5rem);
+        }
+
+        .score-meta,
+        .last-ball-chip {
+          margin-top: 4px;
+        }
+
+        .match-complete-banner {
+          padding: 10px 12px;
+          margin-bottom: 4px;
+        }
+
+        .match-complete-text {
+          font-size: 1rem;
+        }
+
+        .current-over-strip {
+          margin-bottom: 6px;
+        }
+
+        .current-over-section {
+          padding: 8px 4px 8px;
+        }
+
+        .keypad-row {
+          margin-bottom: clamp(3px, 0.8vh, 6px);
+        }
+
+        .keypad-btn {
+          max-width: min(64px, 20vw, 15vh);
+          min-width: 38px;
+          min-height: 38px;
+          max-height: min(64px, 15vh);
+        }
+
+        .meta-btn {
+          min-height: 32px;
+          max-height: 34px;
+        }
       }
 
       @media (max-height: 700px) {
@@ -878,7 +956,7 @@ import { WicketSoundService } from '../services/wicket-sound.service';
 export class UmpireCounterComponent implements OnInit {
   readonly formatUmpireChip = umpireFormatChip;
   readonly state = inject(UmpireStateService);
-  private readonly alertController = inject(AlertController);
+  private readonly actionSheetController = inject(ActionSheetController);
   private readonly toastController = inject(ToastController);
   private readonly haptics = inject(HapticService);
   private readonly wicketSound = inject(WicketSoundService);
@@ -973,7 +1051,7 @@ export class UmpireCounterComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
-    addIcons({ refreshOutline });
+    addIcons({ arrowUndoOutline, arrowRedoOutline });
     afterNextRender(() => this.bindKeypadResizeObserver());
   }
 
@@ -1119,13 +1197,12 @@ export class UmpireCounterComponent implements OnInit {
   }
 
   async confirmReset(): Promise<void> {
-    const alert = await this.alertController.create({
+    const sheet = await this.actionSheetController.create({
       header: 'Reset match?',
-      message: 'All scoring data will be cleared and you will return to the start screen.',
+      subHeader: 'All scoring data will be cleared and you will return to the start screen.',
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Reset match',
           role: 'destructive',
           handler: () => {
             this.pendingWideNb.set(null);
@@ -1134,10 +1211,14 @@ export class UmpireCounterComponent implements OnInit {
             this.state.resetAll();
             this.resetDone.emit();
           }
+        },
+        {
+          text: 'Cancel',
+          role: 'cancel'
         }
       ]
     });
-    await alert.present();
+    await sheet.present();
   }
 
   private completeExtra(extra: number, wicketOnDelivery: boolean): void {
@@ -1182,7 +1263,9 @@ export class UmpireCounterComponent implements OnInit {
       this.scoreFlash.set(null);
       this.flashClearId = null;
     }, 450);
-    void this.scoreToast(message, 900);
+    if (this.state.scoreToastEnabled()) {
+      void this.scoreToast(message, 900);
+    }
   }
 
   private async scoreToast(message: string, duration = 900): Promise<void> {

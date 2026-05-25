@@ -3,6 +3,7 @@ import { AlertController } from '@ionic/angular/standalone';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
+import { PreferencesStorageService } from './preferences-storage.service';
 
 const BUNDLE_ID = 'com.howzat.counter';
 const IOS_LOOKUP_URL = `https://itunes.apple.com/lookup?bundleId=${BUNDLE_ID}`;
@@ -41,6 +42,7 @@ export class AppUpdateService {
   private alertOpen = false;
 
   private readonly alertController = inject(AlertController);
+  private readonly storage = inject(PreferencesStorageService);
 
   /** Call once at startup; register resume listener. */
   async init(): Promise<void> {
@@ -54,9 +56,9 @@ export class AppUpdateService {
   }
 
   private shouldThrottleCheck(): boolean {
+    const raw = this.storage.getItem(STORAGE_LAST_CHECK);
+    if (!raw) return false;
     try {
-      const raw = localStorage.getItem(STORAGE_LAST_CHECK);
-      if (!raw) return false;
       return Date.now() - parseInt(raw, 10) < CHECK_INTERVAL_MS;
     } catch {
       return false;
@@ -64,23 +66,15 @@ export class AppUpdateService {
   }
 
   private markChecked(): void {
-    try {
-      localStorage.setItem(STORAGE_LAST_CHECK, String(Date.now()));
-    } catch { /* ignore */ }
+    this.storage.setItem(STORAGE_LAST_CHECK, String(Date.now()));
   }
 
   private getSkippedVersion(): string | null {
-    try {
-      return localStorage.getItem(STORAGE_SKIPPED);
-    } catch {
-      return null;
-    }
+    return this.storage.getItem(STORAGE_SKIPPED);
   }
 
   private setSkippedVersion(v: string): void {
-    try {
-      localStorage.setItem(STORAGE_SKIPPED, v);
-    } catch { /* ignore */ }
+    this.storage.setItem(STORAGE_SKIPPED, v);
   }
 
   async checkSilently(): Promise<void> {

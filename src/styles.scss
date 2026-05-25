@@ -263,11 +263,42 @@ ion-tab-bar {
   padding-bottom: var(--app-safe-bottom);
 }
 
-/* Screens with a toolbar header */
+/* Screens with a toolbar header — safe area on header, title + actions share one row */
+ion-header {
+  padding-top: var(--app-safe-top);
+}
+
 ion-header ion-toolbar {
-  --padding-top: var(--app-safe-top);
-  --padding-end: 52px;
-  --min-height: calc(var(--app-toolbar-content-height, 56px) + var(--app-safe-top));
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --min-height: var(--app-toolbar-content-height, 56px);
+  height: var(--app-toolbar-content-height, 56px);
+}
+
+ion-header ion-toolbar ion-title {
+  position: relative;
+  inset: unset;
+  top: 0;
+  transform: none;
+  height: 100%;
+  padding-inline: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+ion-header ion-toolbar ion-buttons {
+  align-items: center;
+  height: 100%;
+  margin: 0;
+}
+
+ion-header ion-toolbar ion-buttons app-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 /* Extra scroll padding above tab bar / home indicator */
@@ -285,7 +316,7 @@ ion-content.app-safe-content {
 }
 
 .umpire-toast--score {
-  --top: calc(var(--app-safe-top, env(safe-area-inset-top, 12px)) + 56px);
+  --top: calc(var(--app-safe-top, env(safe-area-inset-top, 12px)) + var(--app-toolbar-content-height, 56px) + 6px);
   --start: 24px;
   --end: 64px;
   font-size: 0.95rem;
