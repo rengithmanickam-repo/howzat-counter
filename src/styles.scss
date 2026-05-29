@@ -19,6 +19,19 @@ html {
   height: 100%;
   touch-action: manipulation;
   color-scheme: light;
+  --ion-default-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+  --ion-font-family: var(--ion-default-font);
+  --ion-dynamic-font: -apple-system-body;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* iOS Dynamic Type (San Francisco scales with accessibility settings) */
+@supports (-webkit-touch-callout: none) {
+  html {
+    font: var(--ion-dynamic-font, 17px var(--ion-font-family));
+  }
 }
 
 html.theme-light {
@@ -28,9 +41,13 @@ html.theme-light {
 body {
   margin: 0;
   height: 100%;
-  font-family: var(--ion-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  font-family: var(--ion-font-family);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.022em;
   background: var(--ion-background-color, #ffffff);
   color: var(--ion-text-color, #000000);
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Ionic Theme Variables - Default Theme */
@@ -119,9 +136,7 @@ body {
   --border-color: var(--ion-border-color);
   --bg-light: var(--ion-color-light);
 
-  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-
-  --spacing-xs: 4px;
+  /* Typography — San Francisco via system stack (see html { --ion-font-family }) */
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
@@ -147,20 +162,38 @@ body {
   --app-safe-top: max(env(safe-area-inset-top, 0px), 12px);
   --app-safe-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
   --app-toolbar-content-height: 56px;
+  --app-tab-bar-float-height: 64px;
+  --app-tab-bar-float-margin: 10px;
+  --app-tab-bar-float-gap: 8px;
+  --app-tab-bar-float-offset: calc(
+    var(--app-tab-bar-float-height) + var(--app-tab-bar-float-margin) + var(--app-tab-bar-float-gap) +
+      env(safe-area-inset-bottom, 0px)
+  );
 }
 
-/* Enhanced Typography */
+/* Typography tuned for iOS (SF Pro Text / Display) */
 body {
   font-family: var(--ion-font-family);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-weight: 700;
+  font-family: var(--ion-font-family);
+  font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
+}
+
+ion-app,
+ion-content,
+ion-item,
+ion-label,
+ion-button,
+ion-segment,
+ion-segment-button,
+ion-tab-button,
+ion-note,
+ion-toggle {
+  font-family: var(--ion-font-family);
 }
 
 /* Transitions on interactive surfaces only (avoids sluggish global repaints) */
@@ -258,52 +291,122 @@ ion-router-outlet > .ion-page:not(.ion-page-hidden):not(.ion-page-invisible) {
   justify-content: flex-start !important;
 }
 
-/* Tab bar: keep icons above the home-indicator swipe zone */
-ion-tab-bar {
-  padding-bottom: var(--app-safe-bottom);
-}
-
-/* Screens with a toolbar header — safe area on header, title + actions share one row */
-ion-header {
-  padding-top: var(--app-safe-top);
-}
-
-ion-header ion-toolbar {
-  --padding-top: 0;
-  --padding-bottom: 0;
-  --min-height: var(--app-toolbar-content-height, 56px);
-  height: var(--app-toolbar-content-height, 56px);
-}
-
-ion-header ion-toolbar ion-title {
+/* Floating glass tab bar (Apple Store–style pill) */
+ion-tabs {
   position: relative;
-  inset: unset;
-  top: 0;
-  transform: none;
-  height: 100%;
-  padding-inline: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
 }
 
-ion-header ion-toolbar ion-buttons {
-  align-items: center;
-  height: 100%;
+ion-tab-bar.app-tab-bar-float {
+  position: absolute;
+  bottom: calc(var(--app-tab-bar-float-margin) + env(safe-area-inset-bottom, 0px));
+  left: 14px;
+  right: 14px;
+  width: auto;
+  height: var(--app-tab-bar-float-height);
   margin: 0;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  --background: rgba(255, 255, 255, 0.72);
+  --border: 0;
+  box-shadow:
+    0 4px 24px rgba(15, 23, 42, 0.1),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  z-index: 100;
+  contain: none;
 }
 
-ion-header ion-toolbar ion-buttons app-theme-toggle {
+ion-tab-bar.app-tab-bar-float ion-tab-button {
+  --color: rgba(60, 60, 67, 0.6);
+  --color-selected: var(--ion-color-primary);
+  --padding-top: 4px;
+  --padding-bottom: 2px;
+  --padding-start: 4px;
+  --padding-end: 4px;
+  margin: 0 2px;
+  min-height: 0;
+  max-width: none;
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+ion-tab-bar.app-tab-bar-float ion-tab-button.tab-selected {
+  background: rgba(var(--ion-color-primary-rgb), 0.14);
+}
+
+ion-tab-bar.app-tab-bar-float ion-tab-button ion-icon {
+  font-size: 1.35rem;
+  margin-top: 2px;
+  margin-bottom: 1px;
+}
+
+ion-tab-bar.app-tab-bar-float ion-tab-button ion-label {
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  margin-bottom: 2px;
+}
+
+ion-tab-bar.app-tab-bar-float ion-tab-button.tab-selected ion-label {
+  font-weight: 600;
+}
+
+/* Fixed scoring keypad sits above the floating tab bar */
+ion-content .keypad-panel[slot='fixed'] {
+  bottom: var(--umpire-tab-bar-clearance, var(--app-tab-bar-float-offset, 86px)) !important;
+  z-index: 10;
+}
+
+/* Shared page header (Live Scoring, History, Help, Settings) */
+ion-header ion-toolbar.app-page-toolbar {
+  --padding-top: env(safe-area-inset-top, 0px);
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+  --min-height: calc(var(--app-toolbar-content-height, 56px) + env(safe-area-inset-top, 0px));
+  --background: var(--ion-toolbar-background);
+  --color: var(--ion-text-color);
+}
+
+.app-page-header-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  position: relative;
+  width: 100%;
+  height: var(--app-toolbar-content-height, 56px);
+  box-sizing: border-box;
 }
 
-/* Extra scroll padding above tab bar / home indicator */
+.app-page-header-title {
+  margin: 0;
+  font-family: var(--ion-font-family);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: var(--app-toolbar-content-height, 56px);
+  color: var(--ion-text-color);
+  text-align: center;
+  width: 100%;
+  padding-inline: 16px;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.theme-dark ion-header ion-toolbar.app-page-toolbar {
+  --background: var(--ion-toolbar-background);
+  --color: var(--ion-text-color);
+  --border-color: var(--border-color);
+}
+
+/* Extra scroll padding above floating tab bar */
 ion-content.app-safe-content {
-  --padding-bottom: var(--app-safe-bottom);
+  --padding-bottom: var(--app-tab-bar-float-offset);
 }
 
 .umpire-toast {
@@ -316,7 +419,7 @@ ion-content.app-safe-content {
 }
 
 .umpire-toast--score {
-  --top: calc(var(--app-safe-top, env(safe-area-inset-top, 12px)) + var(--app-toolbar-content-height, 56px) + 6px);
+  --top: calc(env(safe-area-inset-top, 0px) + var(--app-toolbar-content-height, 56px) + 6px);
   --start: 24px;
   --end: 64px;
   font-size: 0.95rem;
@@ -370,15 +473,21 @@ html.theme-dark {
   color-scheme: dark;
 }
 
-html.theme-dark ion-tab-bar {
-  --background: var(--ion-toolbar-background);
-  border-top: 1px solid var(--border-color);
+html.theme-dark ion-tab-bar.app-tab-bar-float {
+  --background: rgba(28, 28, 31, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
 }
 
-html.theme-dark ion-header ion-toolbar {
-  --background: var(--ion-toolbar-background);
-  --color: var(--ion-text-color);
-  --border-color: var(--border-color);
+html.theme-dark ion-tab-bar.app-tab-bar-float ion-tab-button {
+  --color: rgba(235, 235, 245, 0.55);
+  --color-selected: var(--ion-color-primary-shade);
+}
+
+html.theme-dark ion-tab-bar.app-tab-bar-float ion-tab-button.tab-selected {
+  background: rgba(var(--ion-color-primary-rgb), 0.22);
 }
 
 html.theme-dark ion-list {
@@ -439,3 +548,57 @@ html.theme-dark ion-popover {
 html.theme-dark ion-alert {
   --backdrop-opacity: 0.55;
 }
+
+/* Match setup bottom sheet (fixed-height, bottom-aligned) */
+ion-modal.setup-sheet-modal {
+  --height: 92%;
+  --max-height: 92%;
+  --border-radius: 16px 16px 0 0;
+  --box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.18);
+  align-items: flex-end;
+}
+
+ion-modal.setup-sheet-modal .ion-page,
+ion-modal.setup-sheet-modal .setup-sheet-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+ion-modal.setup-sheet-modal app-setup {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Visual grabber at the top of the sheet */
+ion-modal.setup-sheet-modal .setup-sheet-page::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--ion-color-medium, #92949c);
+  opacity: 0.4;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+}
+
+html.theme-dark ion-modal.setup-sheet-modal {
+  --box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.6);
+}
+
+html.theme-dark ion-modal.setup-sheet-modal .setup-sheet-page::before {
+  background: rgba(255, 255, 255, 0.35);
+}
+

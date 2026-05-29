@@ -1,9 +1,9 @@
 import { Component, OnInit, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButtons, ToastController } from '@ionic/angular/standalone';
+import { IonButton, IonContent, IonNote, ToastController } from '@ionic/angular/standalone';
 import { Capacitor } from '@capacitor/core';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
-import { ThemeToggleComponent } from '../components/theme-toggle.component';
+import { PageHeaderComponent } from '../components/page-header.component';
 import {
   deriveScoreTotals,
   formatOrdinalOver,
@@ -15,16 +15,9 @@ import {
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule, IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButton, IonButtons, ThemeToggleComponent],
+  imports: [CommonModule, IonContent, IonNote, IonButton, PageHeaderComponent],
   template: `
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>History</ion-title>
-        <ion-buttons slot="end">
-          <app-theme-toggle />
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <app-page-header title="History" />
     <ion-content [fullscreen]="false" class="history-ion-content app-safe-content">
       <div class="history-page">
         @if (allOvers().length === 0) {
@@ -116,7 +109,7 @@ import {
     }
 
     .history-page {
-      padding: 16px 14px calc(16px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
+      padding: 16px 14px;
     }
 
     .history-team {

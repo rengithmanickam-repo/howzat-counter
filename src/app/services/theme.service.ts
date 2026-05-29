@@ -60,6 +60,7 @@ export class ThemeService {
   private syncStatusBar(effective: EffectiveTheme): void {
     if (!Capacitor.isNativePlatform()) return;
     const style = effective === 'dark' ? Style.Dark : Style.Light;
+    void StatusBar.setOverlaysWebView({ overlay: false }).catch(() => { /* ignore */ });
     void StatusBar.setStyle({ style }).catch(() => { /* ignore */ });
   }
 }

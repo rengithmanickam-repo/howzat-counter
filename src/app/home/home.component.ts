@@ -1,28 +1,42 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { IonModal } from '@ionic/angular/standalone';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
 import { StartComponent } from '../start/start.component';
 import { SetupComponent } from '../setup/setup.component';
 import { UmpireCounterComponent } from '../umpire-counter/umpire-counter.component';
 
-type HomeView = 'start' | 'setup' | 'counter';
+type HomeView = 'start' | 'counter';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, StartComponent, SetupComponent, UmpireCounterComponent],
+  imports: [CommonModule, IonModal, StartComponent, SetupComponent, UmpireCounterComponent],
   template: `
     @switch (view()) {
       @case ('start') {
         <app-start (startTap)="onStartTap()" />
       }
-      @case ('setup') {
-        <app-setup (matchStarted)="view.set('counter')" (backTap)="view.set('start')" />
-      }
       @case ('counter') {
         <app-umpire-counter (resetDone)="view.set('start')" />
       }
     }
+
+    <ion-modal
+      class="setup-sheet-modal"
+      [isOpen]="setupModalOpen()"
+      [backdropDismiss]="true"
+      (didDismiss)="onSetupDismiss()"
+    >
+      <ng-template>
+        <div class="ion-page setup-sheet-page">
+          <app-setup
+            (matchStarted)="onMatchStarted()"
+            (dismissed)="onSetupDismiss()"
+          />
+        </div>
+      </ng-template>
+    </ion-modal>
   `,
   styles: [`
     :host {
@@ -32,7 +46,8 @@ type HomeView = 'start' | 'setup' | 'counter';
       height: 100%;
     }
 
-    :host > * {
+    :host > app-start,
+    :host > app-umpire-counter {
       flex: 1 1 auto;
       min-height: 0;
       width: 100%;
@@ -42,7 +57,9 @@ type HomeView = 'start' | 'setup' | 'counter';
 })
 export class HomeComponent implements OnInit {
   private readonly state = inject(UmpireStateService);
+
   readonly view = signal<HomeView>('start');
+  readonly setupModalOpen = signal(false);
 
   ngOnInit(): void {
     this.state.ensureLoaded();
@@ -53,6 +70,15 @@ export class HomeComponent implements OnInit {
 
   onStartTap(): void {
     this.state.clearChaseSetupDefaults();
-    this.view.set('setup');
+    this.setupModalOpen.set(true);
+  }
+
+  onMatchStarted(): void {
+    this.setupModalOpen.set(false);
+    this.view.set('counter');
+  }
+
+  onSetupDismiss(): void {
+    this.setupModalOpen.set(false);
   }
 }

@@ -33,7 +33,7 @@ export const HELP_GUIDES: HelpGuide[] = [
     layout: 'pipeline',
     steps: [
       { label: 'Start screen', sublabel: 'Tap Start', icon: 'play-outline', tone: 'primary' },
-      { label: 'Match setup', sublabel: 'Overs, wickets, chase', icon: 'options-outline', tone: 'neutral' },
+      { label: 'Match setup', sublabel: 'Sheet: overs, chase', icon: 'options-outline', tone: 'neutral' },
       { label: 'Live scoring', sublabel: 'Keypad + over strip', icon: 'keypad-outline', tone: 'primary' },
       { label: 'History / Help / Settings', sublabel: 'Bottom tabs anytime', icon: 'apps-outline', tone: 'neutral' },
       { label: 'Innings complete', sublabel: 'Max overs, wickets, or chase target', icon: 'lock-closed-outline', tone: 'warning' },
@@ -54,11 +54,12 @@ export const HELP_GUIDES: HelpGuide[] = [
   {
     id: 'theme',
     title: 'Theme',
-    caption: 'Top-right on every screen.',
+    caption: 'Settings → Appearance.',
     layout: 'row',
     steps: [
-      { label: 'Moon icon', sublabel: 'Tap for dark mode', icon: 'moon-outline', tone: 'neutral' },
-      { label: 'Sun icon', sublabel: 'Tap for light mode', icon: 'sunny-outline', tone: 'warning' }
+      { label: 'System', sublabel: 'Match device', icon: 'settings-outline', tone: 'neutral' },
+      { label: 'Light', sublabel: 'Always light', icon: 'sunny-outline', tone: 'warning' },
+      { label: 'Dark', sublabel: 'Always dark', icon: 'moon-outline', tone: 'primary' }
     ]
   },
   {

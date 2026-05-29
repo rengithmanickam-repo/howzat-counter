@@ -17,7 +17,7 @@ import { helpCircleOutline, homeOutline, listOutline, settingsOutline } from 'io
   template: `
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
-      <ion-tab-bar slot="bottom">
+      <ion-tab-bar slot="bottom" class="app-tab-bar-float">
         <ion-tab-button tab="home">
           <ion-icon name="home-outline"></ion-icon>
           <ion-label>Home</ion-label>
@@ -37,16 +37,7 @@ import { helpCircleOutline, homeOutline, listOutline, settingsOutline } from 'io
       </ion-tab-bar>
     </ion-tabs>
   `,
-  styles: [`
-    ion-tab-bar {
-      --border: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
-      padding-bottom: var(--app-safe-bottom, env(safe-area-inset-bottom, 12px));
-    }
-
-    ion-tab-button ion-label {
-      font-size: 0.65rem;
-    }
-  `]
+  styles: []
 })
 export class TabsComponent {
   constructor() {

@@ -4,36 +4,59 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import {
   IonContent,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonItem,
   IonToggle,
   IonList,
   IonNote,
-  IonButtons
+  IonSegment,
+  IonSegmentButton,
+  IonLabel
 } from '@ionic/angular/standalone';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
-import { ThemeToggleComponent } from '../components/theme-toggle.component';
+import { PageHeaderComponent } from '../components/page-header.component';
+import { ThemeService, type ThemePreference } from '../services/theme.service';
 
 @Component({
   selector: 'app-settings',
   standalone: true,
   imports: [
-    CommonModule, IonContent, IonHeader, IonToolbar, IonTitle,
-    IonItem, IonToggle, IonList, IonNote, IonButtons, ThemeToggleComponent
+    CommonModule,
+    IonContent,
+    IonItem,
+    IonToggle,
+    IonList,
+    IonNote,
+    IonSegment,
+    IonSegmentButton,
+    IonLabel,
+    PageHeaderComponent
   ],
   template: `
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Settings</ion-title>
-        <ion-buttons slot="end">
-          <app-theme-toggle />
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <app-page-header title="Settings" />
     <ion-content [fullscreen]="false" class="settings-ion-content app-safe-content">
       <div class="settings-page">
+        <div class="section-card">
+          <h2 class="section-title">Appearance</h2>
+          <ion-segment
+            class="theme-segment"
+            [value]="theme.preference()"
+            (ionChange)="onThemeChange($event)"
+          >
+            <ion-segment-button value="system">
+              <ion-label>System</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="light">
+              <ion-label>Light</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="dark">
+              <ion-label>Dark</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+          <ion-note class="section-hint">
+            Choose light or dark mode, or match your device setting.
+          </ion-note>
+        </div>
+
         <div class="section-card">
           <h2 class="section-title">Feedback</h2>
           <ion-list>
@@ -122,7 +145,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
     }
 
     .settings-page {
-      padding: 16px 14px calc(16px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
+      padding: 16px 14px;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -141,6 +164,11 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
       font-weight: 700;
       margin: 0 0 12px;
       color: var(--ion-text-color);
+    }
+
+    .theme-segment {
+      width: 100%;
+      margin-bottom: 4px;
     }
 
     .section-hint {
@@ -194,6 +222,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
 })
 export class SettingsComponent implements OnInit {
   readonly state = inject(UmpireStateService);
+  readonly theme = inject(ThemeService);
   readonly appVersion = signal('1.2.0');
 
   ngOnInit(): void {
@@ -228,5 +257,12 @@ export class SettingsComponent implements OnInit {
   onScoreToast(ev: Event): void {
     const checked = (ev as CustomEvent<{ checked: boolean }>).detail.checked;
     this.state.setScoreToastEnabled(!!checked);
+  }
+
+  onThemeChange(ev: Event): void {
+    const value = (ev as CustomEvent<{ value?: string }>).detail.value;
+    if (value === 'system' || value === 'light' || value === 'dark') {
+      this.theme.setPreference(value as ThemePreference);
+    }
   }
 }

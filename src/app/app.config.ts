@@ -9,7 +9,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideIonicAngular({}),
+    provideIonicAngular({ mode: 'ios' }),
     {
       provide: APP_INITIALIZER,
       multi: true,

@@ -1,22 +1,15 @@
 import { Component } from '@angular/core';
-import { IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButtons } from '@ionic/angular/standalone';
+import { IonContent, IonNote } from '@ionic/angular/standalone';
 import { HELP_GUIDES } from './help-guides';
 import { HelpVisualGuideComponent } from './help-visual-guide.component';
-import { ThemeToggleComponent } from '../components/theme-toggle.component';
+import { PageHeaderComponent } from '../components/page-header.component';
 
 @Component({
   selector: 'app-help',
   standalone: true,
-  imports: [IonContent, IonHeader, IonToolbar, IonTitle, IonNote, IonButtons, HelpVisualGuideComponent, ThemeToggleComponent],
+  imports: [IonContent, IonNote, HelpVisualGuideComponent, PageHeaderComponent],
   template: `
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>How to use</ion-title>
-        <ion-buttons slot="end">
-          <app-theme-toggle />
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <app-page-header title="How to use" />
     <ion-content [fullscreen]="false" class="help-ion-content app-safe-content">
       <div class="help-page">
         <p class="help-intro">
@@ -41,7 +34,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
           <h2 class="section-title">1. Start a match</h2>
           <ol class="help-list">
             <li>Tap <strong>Start</strong> on the home screen.</li>
-            <li>On <strong>Match Setup</strong>, set overs, balls per over, and max wickets.</li>
+            <li>A <strong>Match Setup</strong> sheet slides up — set overs, balls per over, and max wickets.</li>
             <li>Optionally enter a <strong>batting side</strong> name (shown on the score).</li>
             <li>Turn on <strong>Chasing a target</strong> if batting second and enter runs to win (e.g. 152).</li>
             <li>Choose which extra buttons appear on the keypad, then tap <strong>Start Match</strong>.</li>
@@ -97,7 +90,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
             <li><strong>Redo</strong> — restore the last undone ball.</li>
             <li><strong>Reset</strong> — clear the match and return to the start screen (confirmation shown).</li>
             <li><strong>Settings</strong> — haptic feedback, wicket sound, four/six/wicket toasts, extra button visibility, and current match details while scoring.</li>
-            <li><strong>Theme</strong> — tap the <strong>sun/moon</strong> icon (top right on every screen) to switch light and dark mode.</li>
+            <li><strong>Theme</strong> — open <strong>Settings</strong> and choose System, Light, or Dark under Appearance.</li>
           </ul>
         </section>
 
@@ -120,7 +113,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
     }
 
     .help-page {
-      padding: 16px 14px calc(20px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
+      padding: 16px 14px;
       display: flex;
       flex-direction: column;
       gap: 14px;

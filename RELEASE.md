@@ -3,6 +3,8 @@
 ## Version 1.3.0 (build 4)
 
 ### What’s new
+- Virtual coin toss with a rich 3D animated quarter (in match setup)
+- Match setup now opens as a native-style bottom sheet
 - Dark mode with manual theme toggle on all screens
 - Help tab with step-by-step visual guides (no external diagrams)
 - Score toasts for 4, 6 & wicket (top of screen; optional in Settings)
@@ -37,6 +39,8 @@ In Xcode:
 4. In App Store Connect → **What's New**:
 
 ```
+• New: virtual coin toss to start the match with a 3D animated coin
+• Match setup now slides up as a modern bottom sheet
 • Dark mode and theme toggle — match your device or choose light/dark
 • Redesigned Help with clear step-by-step guides
 • Optional score toasts for fours, sixes and wickets

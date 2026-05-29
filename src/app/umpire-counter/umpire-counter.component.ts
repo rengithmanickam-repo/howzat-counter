@@ -13,10 +13,6 @@ import {
 import { CommonModule } from '@angular/common';
 import {
   IonContent,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButtons,
   IonButton,
   IonIcon,
   IonNote,
@@ -38,7 +34,7 @@ import type { UmpireEvent } from './umpire-counter.model';
 import { UmpireStateService } from './umpire-state.service';
 import { HapticService } from '../services/haptic.service';
 import { WicketSoundService } from '../services/wicket-sound.service';
-import { ThemeToggleComponent } from '../components/theme-toggle.component';
+import { PageHeaderComponent } from '../components/page-header.component';
 
 @Component({
   selector: 'app-umpire-counter',
@@ -46,24 +42,13 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
   imports: [
     CommonModule,
     IonContent,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonButtons,
     IonButton,
     IonIcon,
     IonNote,
-    ThemeToggleComponent
+    PageHeaderComponent
   ],
   template: `
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Live Scoring</ion-title>
-        <ion-buttons slot="end">
-          <app-theme-toggle />
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <app-page-header title="Live Scoring" />
     <ion-content [fullscreen]="false" class="umpire-ion-content">
       <div class="umpire-page">
         <div class="umpire-score-head">
@@ -416,6 +401,10 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
         flex-shrink: 0;
       }
 
+      app-page-header {
+        flex-shrink: 0;
+      }
+
       .umpire-ion-content {
         flex: 1 1 auto;
         min-height: 0;
@@ -423,7 +412,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
         --padding-top: 0;
         --padding-start: 0;
         --padding-end: 0;
-        --padding-bottom: var(--umpire-keypad-offset, 208px);
+        --padding-bottom: calc(var(--umpire-keypad-offset, 208px) + var(--umpire-tab-bar-clearance, var(--app-tab-bar-float-offset, 86px)));
       }
 
       .umpire-ion-content::part(scroll) {
@@ -476,12 +465,11 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
       .keypad-panel {
         left: 0;
         right: 0;
-        bottom: 0;
+        bottom: var(--umpire-tab-bar-clearance, var(--app-tab-bar-float-offset, 86px));
         width: 100%;
         z-index: 10;
         pointer-events: auto;
-        padding: clamp(4px, 1vh, 8px) clamp(6px, 2vw, 10px)
-          calc(6px + var(--app-safe-bottom, max(env(safe-area-inset-bottom, 0px), 12px)));
+        padding: clamp(4px, 1vh, 8px) clamp(6px, 2vw, 10px) 6px;
         background: var(--ion-background-color, #f4f5f8);
         border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
         box-sizing: border-box;
@@ -1063,19 +1051,43 @@ export class UmpireCounterComponent implements OnInit {
     const panel = this.keypadPanel()?.nativeElement;
     if (!panel) return;
 
+    const tabBarClearance = (): number => {
+      const tabBar = document.querySelector('ion-tab-bar.app-tab-bar-float');
+      if (!tabBar) return 86;
+      const rect = tabBar.getBoundingClientRect();
+      const gap = 8;
+      return Math.ceil(window.innerHeight - rect.top) + gap;
+    };
+
     const apply = (): void => {
+      const clearance = tabBarClearance();
+      const clearancePx = `${clearance}px`;
+      panel.style.bottom = clearancePx;
+
       const h = Math.ceil(panel.getBoundingClientRect().height);
       const host = panel.closest('app-umpire-counter') as HTMLElement | null;
       const content = panel.closest('ion-content') as HTMLElement | null;
-      const px = `${h}px`;
-      host?.style.setProperty('--umpire-keypad-offset', px);
-      content?.style.setProperty('--umpire-keypad-offset', px);
+      host?.style.setProperty('--umpire-keypad-offset', `${h}px`);
+      host?.style.setProperty('--umpire-tab-bar-clearance', clearancePx);
+      content?.style.setProperty('--umpire-tab-bar-clearance', clearancePx);
+      content?.style.setProperty('--padding-bottom', `${h + clearance}px`);
     };
 
     apply();
+    setTimeout(apply, 150);
+
     const ro = new ResizeObserver(() => apply());
     ro.observe(panel);
-    this.destroyRef.onDestroy(() => ro.disconnect());
+    const tabBar = document.querySelector('ion-tab-bar.app-tab-bar-float');
+    if (tabBar) ro.observe(tabBar);
+
+    const onResize = (): void => apply();
+    window.addEventListener('resize', onResize, { passive: true });
+
+    this.destroyRef.onDestroy(() => {
+      ro.disconnect();
+      window.removeEventListener('resize', onResize);
+    });
   }
 
   ordinalOver(n: number): string {

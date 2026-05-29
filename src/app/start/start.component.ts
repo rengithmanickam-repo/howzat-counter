@@ -1,13 +1,11 @@
 import { Component, output } from '@angular/core';
 import { IonButton, IonContent } from '@ionic/angular/standalone';
-import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
 @Component({
   selector: 'app-start',
   standalone: true,
-  imports: [IonButton, IonContent, ThemeToggleComponent],
+  imports: [IonButton, IonContent],
   template: `
-    <app-theme-toggle overlay />
     <ion-content [fullscreen]="false" class="start-ion-content app-safe-content">
       <div class="start-page">
         <div class="brand-area">
@@ -50,7 +48,7 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
       align-items: center;
       justify-content: center;
       min-height: 100%;
-      padding: 24px 24px calc(32px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
+      padding: 24px 24px calc(24px + var(--app-tab-bar-float-offset, 74px));
       box-sizing: border-box;
       gap: 48px;
     }

@@ -11,7 +11,8 @@
     "cap:sync": "npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "test:unit": "vitest run"
+    "test:unit": "vitest run",
+    "screenshots:ios": "node scripts/capture-app-store-screenshots.mjs"
   },
   "private": true,
   "dependencies": {
@@ -45,6 +46,7 @@
     "@angular/cli": "^19.0.0",
     "@angular/compiler-cli": "^19.0.0",
     "@ionic/angular-toolkit": "^12.3.0",
+    "playwright": "^1.52.0",
     "typescript": "~5.6.0",
     "vitest": "^3.2.4"
   }

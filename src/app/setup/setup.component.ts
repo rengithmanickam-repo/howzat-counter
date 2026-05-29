@@ -2,155 +2,200 @@ import { Component, OnInit, effect, inject, output, signal } from '@angular/core
 import { CommonModule } from '@angular/common';
 import {
   IonButton,
-  IonContent,
+  IonButtons,
+  IonHeader,
   IonItem,
   IonToggle,
   IonList,
   IonInput,
+  IonTitle,
+  IonToolbar,
   ToastController
 } from '@ionic/angular/standalone';
 import { UmpireStateService } from '../umpire-counter/umpire-state.service';
 import type { UmpireSetupConfig } from '../umpire-counter/umpire-counter.model';
-import { ThemeToggleComponent } from '../components/theme-toggle.component';
+import { CoinTossComponent } from '../components/coin-toss.component';
 
 @Component({
   selector: 'app-setup',
   standalone: true,
-  imports: [CommonModule, IonButton, IonContent, IonItem, IonToggle, IonList, IonInput, ThemeToggleComponent],
+  imports: [
+    CommonModule,
+    IonButton,
+    IonButtons,
+    IonHeader,
+    IonItem,
+    IonToggle,
+    IonList,
+    IonInput,
+    IonTitle,
+    IonToolbar,
+    CoinTossComponent
+  ],
   template: `
-    <app-theme-toggle overlay />
-    <ion-content [fullscreen]="false" class="setup-ion-content app-safe-content">
-      <div class="setup-page">
-        <h1 class="setup-title">Match Setup</h1>
-        <p class="setup-hint">Configure the match before you start scoring.</p>
+    <ion-header>
+      <ion-toolbar class="setup-sheet-toolbar">
+        <ion-buttons slot="start">
+          <ion-button fill="clear" (click)="dismissed.emit()">Cancel</ion-button>
+        </ion-buttons>
+        <ion-title>Match Setup</ion-title>
+      </ion-toolbar>
+    </ion-header>
 
-        <div class="section-card">
-          <h2 class="section-heading">Team (optional)</h2>
-          <ion-list lines="full" class="setup-list">
-            <ion-item>
-              <ion-input
-                label="Batting side"
-                labelPlacement="stacked"
-                helperText="Shown on the scorecard and when sharing"
-                type="text"
-                [value]="teamName()"
-                (ionInput)="onTeamNameInput($event)"
-              ></ion-input>
-            </ion-item>
-          </ion-list>
-        </div>
+    <div class="setup-shell">
+      <div class="setup-scroll">
+        <div class="setup-page">
+          <p class="setup-hint">Configure the match before you start scoring.</p>
 
-        <div class="section-card">
-          <h2 class="section-heading">Match Rules</h2>
-          <ion-list lines="full" class="setup-list">
-            <ion-item>
-              <ion-input
-                label="Overs"
-                labelPlacement="stacked"
-                helperText="Total overs in the innings"
-                type="number"
-                inputmode="numeric"
-                [value]="overs()"
-                (ionInput)="onInput('overs', $event)"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-input
-                label="Balls per over"
-                labelPlacement="stacked"
-                helperText="Legal deliveries per over (1–12)"
-                type="number"
-                inputmode="numeric"
-                [value]="ballsPerOver()"
-                (ionInput)="onInput('ballsPerOver', $event)"
-              ></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-input
-                label="Wickets"
-                labelPlacement="stacked"
-                helperText="Max wickets (1–20)"
-                type="number"
-                inputmode="numeric"
-                [value]="wickets()"
-                (ionInput)="onInput('wickets', $event)"
-              ></ion-input>
-            </ion-item>
-          </ion-list>
-        </div>
+          <div class="section-card">
+            <h2 class="section-heading">Toss</h2>
+            <p class="section-subhint">Flip a virtual coin to decide who bats or bowls first.</p>
+            <app-coin-toss />
+          </div>
 
-        <div class="section-card">
-          <h2 class="section-heading">Batting second</h2>
-          <ion-list lines="full" class="setup-list">
-            @for (rev of [formRevision()]; track rev) {
+          <div class="section-card">
+            <h2 class="section-heading">Team (optional)</h2>
+            <ion-list lines="full" class="setup-list">
               <ion-item>
-                <ion-toggle [checked]="battingSecond()" (ionChange)="onBattingSecond($event)">
-                  Chasing a target
-                </ion-toggle>
+                <ion-input
+                  label="Batting side"
+                  labelPlacement="stacked"
+                  helperText="Shown on the scorecard and when sharing"
+                  type="text"
+                  [value]="teamName()"
+                  (ionInput)="onTeamNameInput($event)"
+                ></ion-input>
               </ion-item>
-              @if (battingSecond()) {
+            </ion-list>
+          </div>
+
+          <div class="section-card">
+            <h2 class="section-heading">Match Rules</h2>
+            <ion-list lines="full" class="setup-list">
+              <ion-item>
+                <ion-input
+                  label="Overs"
+                  labelPlacement="stacked"
+                  helperText="Total overs in the innings"
+                  type="number"
+                  inputmode="numeric"
+                  [value]="overs()"
+                  (ionInput)="onInput('overs', $event)"
+                ></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input
+                  label="Balls per over"
+                  labelPlacement="stacked"
+                  helperText="Legal deliveries per over (1–12)"
+                  type="number"
+                  inputmode="numeric"
+                  [value]="ballsPerOver()"
+                  (ionInput)="onInput('ballsPerOver', $event)"
+                ></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input
+                  label="Wickets"
+                  labelPlacement="stacked"
+                  helperText="Max wickets (1–20)"
+                  type="number"
+                  inputmode="numeric"
+                  [value]="wickets()"
+                  (ionInput)="onInput('wickets', $event)"
+                ></ion-input>
+              </ion-item>
+            </ion-list>
+          </div>
+
+          <div class="section-card">
+            <h2 class="section-heading">Batting second</h2>
+            <ion-list lines="full" class="setup-list">
+              @for (rev of [formRevision()]; track rev) {
                 <ion-item>
-                  <ion-input
-                    label="Target (runs to win)"
-                    labelPlacement="stacked"
-                    helperText="e.g. opposition score + 1 — used for runs needed and required run rate"
-                    type="number"
-                    inputmode="numeric"
-                    [value]="chaseTarget()"
-                    (ionInput)="onChaseTargetInput($event)"
-                  ></ion-input>
+                  <ion-toggle [checked]="battingSecond()" (ionChange)="onBattingSecond($event)">
+                    Chasing a target
+                  </ion-toggle>
                 </ion-item>
+                @if (battingSecond()) {
+                  <ion-item>
+                    <ion-input
+                      label="Target (runs to win)"
+                      labelPlacement="stacked"
+                      helperText="e.g. opposition score + 1 — used for runs needed and required run rate"
+                      type="number"
+                      inputmode="numeric"
+                      [value]="chaseTarget()"
+                      (ionInput)="onChaseTargetInput($event)"
+                    ></ion-input>
+                  </ion-item>
+                }
               }
-            }
-          </ion-list>
-        </div>
+            </ion-list>
+          </div>
 
-        <div class="section-card">
-          <h2 class="section-heading">Extras</h2>
-          <ion-list class="setup-list">
-            <ion-item>
-              <ion-toggle [checked]="showWide()" (ionChange)="onToggle('showWide', $event)">Wide (Wd)</ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-toggle [checked]="showNoBall()" (ionChange)="onToggle('showNoBall', $event)">No-ball (Nb)</ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-toggle [checked]="showLb()" (ionChange)="onToggle('showLb', $event)">Leg-bye (Lb)</ion-toggle>
-            </ion-item>
-            <ion-item>
-              <ion-toggle [checked]="showBye()" (ionChange)="onToggle('showBye', $event)">Bye</ion-toggle>
-            </ion-item>
-          </ion-list>
-        </div>
-
-        <div class="action-area">
-          <ion-button expand="block" size="large" class="start-match-btn" (click)="onStartMatch()">
-            Start Match
-          </ion-button>
-          <ion-button expand="block" fill="outline" size="small" class="back-btn" (click)="backTap.emit()">
-            Back
-          </ion-button>
+          <div class="section-card">
+            <h2 class="section-heading">Extras</h2>
+            <ion-list class="setup-list">
+              <ion-item>
+                <ion-toggle [checked]="showWide()" (ionChange)="onToggle('showWide', $event)">Wide (Wd)</ion-toggle>
+              </ion-item>
+              <ion-item>
+                <ion-toggle [checked]="showNoBall()" (ionChange)="onToggle('showNoBall', $event)">No-ball (Nb)</ion-toggle>
+              </ion-item>
+              <ion-item>
+                <ion-toggle [checked]="showLb()" (ionChange)="onToggle('showLb', $event)">Leg-bye (Lb)</ion-toggle>
+              </ion-item>
+              <ion-item>
+                <ion-toggle [checked]="showBye()" (ionChange)="onToggle('showBye', $event)">Bye</ion-toggle>
+              </ion-item>
+            </ion-list>
+          </div>
         </div>
       </div>
-    </ion-content>
+
+      <div class="setup-footer">
+        <ion-button expand="block" size="large" class="start-match-btn" (click)="onStartMatch()">
+          Start Match
+        </ion-button>
+      </div>
+    </div>
   `,
   styles: [`
     :host {
       display: flex;
       flex-direction: column;
-      flex: 1 1 auto;
-      min-height: 0;
-      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      background: var(--ion-background-color, #f4f5f8);
     }
 
-    .setup-ion-content {
+    ion-header {
+      flex: 0 0 auto;
+    }
+
+    .setup-sheet-toolbar {
+      --background: var(--ion-background-color, #f4f5f8);
+      --border-width: 0 0 0.55px 0;
+      --border-color: var(--border-color, rgba(0, 0, 0, 0.08));
+      padding-top: 6px;
+    }
+
+    .setup-shell {
       flex: 1 1 auto;
       min-height: 0;
-      --background: var(--ion-background-color, #f4f5f8);
-      --padding-start: 0;
-      --padding-end: 0;
-      --padding-top: var(--app-safe-top, max(env(safe-area-inset-top, 0px), 12px));
-      --padding-bottom: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .setup-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .setup-page {
@@ -160,21 +205,14 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
       max-width: 560px;
       margin: 0 auto;
       box-sizing: border-box;
-      padding: 16px 16px calc(20px + var(--app-safe-bottom, env(safe-area-inset-bottom, 12px)));
+      padding: 8px 16px 16px;
       gap: 14px;
-    }
-
-    .setup-title {
-      font-size: 1.45rem;
-      font-weight: 800;
-      margin: 0;
-      color: var(--ion-text-color);
     }
 
     .setup-hint {
       font-size: 0.88rem;
       color: var(--ion-color-medium-shade, #5f6368);
-      margin: -6px 0 0;
+      margin: 0;
       line-height: 1.35;
     }
 
@@ -184,9 +222,16 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
 
     .section-heading {
       font-size: 0.95rem;
-      font-weight: 700;
+      font-weight: 600;
       margin: 0 0 8px;
       color: var(--ion-text-color);
+    }
+
+    .section-subhint {
+      font-size: 0.82rem;
+      color: var(--ion-color-medium-shade, #5f6368);
+      margin: 0 0 14px;
+      line-height: 1.35;
     }
 
     .setup-list {
@@ -200,23 +245,21 @@ import { ThemeToggleComponent } from '../components/theme-toggle.component';
       --background: transparent;
     }
 
-    .action-area {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 4px;
-      padding-bottom: 4px;
+    .setup-footer {
+      flex: 0 0 auto;
+      box-sizing: border-box;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+      background: var(--ion-background-color, #f4f5f8);
+      border-top: 0.55px solid var(--border-color, rgba(0, 0, 0, 0.08));
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
     }
 
     .start-match-btn {
       --border-radius: 14px;
-      font-weight: 800;
-      font-size: 1.1rem;
-      min-height: 52px;
-    }
-
-    .back-btn {
-      --border-radius: 10px;
+      font-weight: 600;
+      font-size: 1.0625rem;
+      min-height: 50px;
+      margin: 0;
     }
   `]
 })
@@ -234,11 +277,10 @@ export class SetupComponent implements OnInit {
   readonly teamName = signal('');
   readonly battingSecond = signal(false);
   readonly chaseTarget = signal('');
-  /** Forces ion-toggle to remount when defaults reload after reset. */
   readonly formRevision = signal(0);
 
   readonly matchStarted = output<void>();
-  readonly backTap = output<void>();
+  readonly dismissed = output<void>();
 
   constructor() {
     effect(() => {
@@ -329,7 +371,7 @@ export class SetupComponent implements OnInit {
   }
 
   private async toast(message: string): Promise<void> {
-    const t = await this.toastController.create({ message, duration: 2500, position: 'bottom' });
+    const t = await this.toastController.create({ message, duration: 2500, position: 'top' });
     await t.present();
   }
 }
