@@ -1,13 +1,15 @@
 # Release checklist — Howzat Counter
 
-## Version 1.3.0 (build 4)
+## Version 1.4.0 (build 5)
 
 ### What’s new
 - Virtual coin toss with a rich 3D animated quarter (in match setup)
-- Match setup now opens as a native-style bottom sheet
-- Dark mode with manual theme toggle on all screens
-- Help tab with step-by-step visual guides (no external diagrams)
-- Score toasts for 4, 6 & wicket (top of screen; optional in Settings)
+- Match setup opens as a native-style bottom sheet
+- iOS-style floating tab bar and safe-area header fixes
+- Theme picker moved to Settings (removed from headers)
+- Dark mode with manual theme toggle
+- Help tab with step-by-step visual guides
+- Score toasts for 4, 6 & wicket (optional in Settings)
 - History overs list full width; most recent overs first
 - Status bar follows light/dark theme on iOS
 - Reset match uses native action sheet
@@ -18,10 +20,10 @@
 
 | Location | Value |
 |----------|--------|
-| `package.json` | `1.3.0` |
-| Xcode **Marketing Version** | `1.3` |
-| Xcode **Build** (`CURRENT_PROJECT_VERSION`) | `4` |
-| `latest-version.json` | `"1.3.0"` |
+| `package.json` | `1.4.0` |
+| Xcode **Marketing Version** | `1.4` |
+| Xcode **Build** (`CURRENT_PROJECT_VERSION`) | `5` |
+| `latest-version.json` | `"1.4.0"` |
 
 ### Build & deploy (iOS)
 
@@ -33,7 +35,7 @@ npm run cap:open:ios
 ```
 
 In Xcode:
-1. Confirm **Marketing Version** = `1.3`, **Build** = `4`
+1. Confirm **Marketing Version** = `1.4`, **Build** = `5`
 2. **Product → Archive**
 3. **Distribute App** → App Store Connect
 4. In App Store Connect → **What's New**:
@@ -41,6 +43,7 @@ In Xcode:
 ```
 • New: virtual coin toss to start the match with a 3D animated coin
 • Match setup now slides up as a modern bottom sheet
+• Redesigned tab bar and improved layout on iPhone
 • Dark mode and theme toggle — match your device or choose light/dark
 • Redesigned Help with clear step-by-step guides
 • Optional score toasts for fours, sixes and wickets
@@ -48,10 +51,10 @@ In Xcode:
 • Faster, more reliable saved settings on iOS
 ```
 
-5. After release, ensure `latest-version.json` on `main` is `"1.3.0"`
+5. After release, ensure `latest-version.json` on `main` is `"1.4.0"`
 
 ### App Store Connect
 
 - **Bundle ID:** `com.howzat.counter`
 - Answer **Export Compliance:** No custom encryption (`ITSAppUsesNonExemptEncryption` = NO)
-- **Build number** must increase for every upload
+- **Build number** must increase for every upload (use `5` or higher)
